@@ -21,10 +21,10 @@ The training and validation data is available for download at this [link](https:
 
 ### Model Weights
 The weights for our models, with varying number of Sentinel-2 images as input are available for download at these links:
-- [2-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_2S2.pth')
-- [6-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_6S2.pth')
-- [12-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_12S2.pth')
-- [18-s2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_18S2.pth')
+- [2-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_2S2.pth)
+- [6-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_6S2.pth)
+- [12-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_12S2.pth)
+- [18-S2-images](https://pub-956f3eb0f5974f37b9228e0a62f449bf.r2.dev/satlas_explorer_datasets/super_resolution_models/esrgan_orig_18S2.pth)
 
 ## Dataset Structure
 The dataset consists of image pairs from Sentinel-2 and NAIP satellites, where a pair is a time series of Sentinel-2 images 
