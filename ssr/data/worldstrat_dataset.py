@@ -7,6 +7,7 @@ import random
 import torchvision
 import skimage.io
 import numpy as np
+import torch.nn as nn
 from osgeo import gdal
 from PIL import Image
 from torch.utils import data as data
@@ -15,6 +16,21 @@ from basicsr.utils.registry import DATASET_REGISTRY
 
 totensor = torchvision.transforms.ToTensor()
 
+def pad(im, pad_to):
+    if im.shape[2] < pad_to:
+        half = (pad_to - im.shape[2]) // 2
+        im = nn.functional.pad(im, [pad_to - im.shape[2] - half, half, 0, 0])
+    else:
+        start = (im.shape[2] - pad_to) // 2
+        im = im[:, :, start:start+pad_to]
+
+    if im.shape[1] < pad_to:
+        half = (pad_to - im.shape[1]) // 2
+        im = nn.functional.pad(im, [0, 0, pad_to - im.shape[1] - half, half])
+    else:
+        start = (im.shape[1] - pad_to) // 2
+        im = im[:, start:start+pad_to, :]
+    return im
 
 @DATASET_REGISTRY.register()
 class WorldStratDataset(data.Dataset):
@@ -34,6 +50,9 @@ class WorldStratDataset(data.Dataset):
         self.lr_path = opt['lr_path']
         self.hr_path = opt['hr_path']
         self.splits_csv = '/data/piperw/worldstrat/dataset/stratified_train_val_test_split.csv'
+
+        # Flags whether the model being used expects [b, n_images, channels, h, w] or [b, n_images*channels, h, w].
+        self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
 
         # Read in the csv file containing splits and filter out non-relevant images for this split.
         # Build a list of [hr_path, [lr_paths]] lists. 
@@ -75,7 +94,7 @@ class WorldStratDataset(data.Dataset):
 
         # Load the HR image with skimage, since it's a png.
         hr_im = skimage.io.imread(hr_path)[:, :, 0:3]
-        hr_im = cv2.resize(hr_im, (600, 600)) # NOTE: temporarily downsizing the HR image to match the SR image
+        hr_im = cv2.resize(hr_im, (640, 640)) # NOTE: temporarily downsizing the HR image to match the SR image
         img_HR = totensor(hr_im)
 
         # Load each of the LR images with gdal, since they're tifs.
@@ -85,15 +104,14 @@ class WorldStratDataset(data.Dataset):
             array = raster.ReadAsArray()
             array = np.clip(array*700, 0, 255).astype(np.uint8)
             lr_im = array.transpose(1, 2, 0)[:, :, 1:4]
-
-            # Resizing to spatial dim of (150, 150) since the S2 images are not all
-            # the same h,w but are around 150-160 in both dims.
-            lr_im = cv2.resize(lr_im, (150, 150))
             lr_ims.append(lr_im)
 
-        lr_ims = [totensor(im) for im in lr_ims]
+        # Pad to some desired spatial dimensions so all images are consistent.
+        lr_ims = [pad(totensor(im), 160) for im in lr_ims]
+
         img_LR = torch.stack(lr_ims, dim=0)
-        img_LR = torch.reshape(img_LR, (-1, 150, 150))
+        if not self.use_3d:
+            img_LR = torch.reshape(img_LR, (-1, 160, 160))
 
         return {'gt': img_HR, 'lq': img_LR, 'Index': index}
 
