@@ -1,5 +1,5 @@
 # General Settings
-name: sample_experiment_name
+name: worldstrat_test
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -19,16 +19,9 @@ datasets:
     name: train
     type: SSRDataset
 
-    # Paths to Sentinel-2 and NAIP imagery.
-    sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
-    naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
-
-    # (Optional) path to old NAIP images, between 2016-2018. If specified, old NAIP will be 
-    # provided to the discriminator as additional input.
-    #old_naip_path: /data/piperw/data/old-naip/
-
-    # (Optional) json with tile weights for training time.
-    #tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
+    # Paths to Sentinel-2 and HR imagery.
+    sentinel2_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
+    hr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
 
     use_shuffle: False  # shuffle MUST be False if using tile_weights
 
@@ -48,13 +41,9 @@ datasets:
      name: validation
      type: SSRDataset
 
-     # Paths to Sentinel-2 and NAIP imagery.
-     sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
-     naip_path: /data/piperw/super-res/ssr-data/val_set/naip
-
-     # (Optional) path to old NAIP images, between 2016-2018. If specified, old NAIP will be 
-     # provided to the discriminator as additional input.
-     #old_naip_path: /data/piperw/data/old-naip/
+     # Paths to Sentinel-2 and HR imagery.
+     sentinel2_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
+     hr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
 
      use_shuffle: False
 
@@ -86,7 +75,7 @@ network_d:
 # Load in existing weights to the generator and discriminator.
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: weights/satlas32_rrdbnet_last.pth
+  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d:
