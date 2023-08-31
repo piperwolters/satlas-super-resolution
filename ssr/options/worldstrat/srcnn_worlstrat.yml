@@ -100,7 +100,7 @@ train:
 # Validation Settings
 val:
    val_freq: !!float 5e3
-   save_img: True
+   save_img: False
 
    metrics:
      psnr: # metric name
