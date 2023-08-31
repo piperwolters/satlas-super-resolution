@@ -54,6 +54,9 @@ class SSRDataset(data.Dataset):
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
 
+        # Flags whether the model being used expects [b, n_images, channels, h, w] or [b, n_images*channels, h, w].
+        self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
+
         self.s2_bands = opt['s2_bands'] if 's2_bands' in opt else ['tci']
         self.old_naip_path = opt['old_naip_path'] if 'old_naip_path' in opt else None
 
@@ -171,6 +174,9 @@ class SSRDataset(data.Dataset):
                             rshp = np.reshape(band_im, (-1, 32, 32))
                         cut = np.reshape(rshp[:self.n_s2_images], (-1, 32, 32))
 
+                        if self.use_3d:
+                            print("WARNING: use_3d not yet implemented for more bands")
+
                         if i == 0:
                             s2_images = totensor(cut)
                         else:
@@ -204,9 +210,12 @@ class SSRDataset(data.Dataset):
                 s2_chunks = np.array(s2_chunks)
                 s2_chunks = [totensor(img) for img in s2_chunks]
 
-                img_SR = torch.cat(s2_chunks)
+                if self.use_3d:
+                    img_S2 = torch.stack(s2_chunks)
+                else:
+                    img_S2 = torch.cat(s2_chunks)
             else:
-                img_SR = s2_images
+                img_S2 = s2_images
 
             img_HR = totensor(naip_chip)
 
@@ -214,9 +223,9 @@ class SSRDataset(data.Dataset):
                 old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
-                return {'gt': img_HR, 'lq': img_SR, 'old_naip': img_old_HR, 'Index': index}
+                return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index}
             else:
-                return {'gt': img_HR, 'lq': img_SR, 'Index': index}
+                return {'gt': img_HR, 'lq': img_S2, 'Index': index}
 
     def __len__(self):
         return self.data_len
