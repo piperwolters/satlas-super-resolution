@@ -76,7 +76,6 @@ path:
 
 # Training Settings
 train:
-  ema_decay: 0.999
   optim_g:
     type: Adam
     lr: !!float 1e-4
@@ -99,7 +98,7 @@ train:
 
 # Validation Settings
 val:
-   val_freq: 100 #!!float 5e3
+   val_freq: !!float 5e3
    save_img: True
 
    metrics:

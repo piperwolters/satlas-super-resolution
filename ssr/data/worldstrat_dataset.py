@@ -89,7 +89,6 @@ class WorldStratDataset(data.Dataset):
         print("Loaded ", self.data_len, " data pairs.")
 
     def __getitem__(self, index):
-
         hr_path, lr_paths = self.datapoints[index]
 
         # Load the HR image with skimage, since it's a png.
