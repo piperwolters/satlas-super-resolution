@@ -51,6 +51,9 @@ class WorldStratDataset(data.Dataset):
         self.hr_path = opt['hr_path']
         self.splits_csv = '/data/piperw/worldstrat/dataset/stratified_train_val_test_split.csv'
 
+        # Flags whether to use all bands (13) or just rgb (3).
+        self.all_bands = opt['all_bands'] if 'all_bands' in opt else False
+
         # Flags whether the model being used expects [b, n_images, channels, h, w] or [b, n_images*channels, h, w].
         self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
 
@@ -102,7 +105,11 @@ class WorldStratDataset(data.Dataset):
             raster = gdal.Open(lr_path)
             array = raster.ReadAsArray()
             array = np.clip(array*700, 0, 255).astype(np.uint8)
-            lr_im = array.transpose(1, 2, 0)[:, :, 1:4]
+
+            if self.all_bands:
+                lr_im = array.transpose(1, 2, 0)
+            else:
+                lr_im = array.transpose(1, 2, 0)[:, :, 1:4]
             lr_ims.append(lr_im)
 
         # Pad to some desired spatial dimensions so all images are consistent.

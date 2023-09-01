@@ -34,6 +34,10 @@ class WorldStratModel(SRModel):
         ssim = kornia.losses.ssim_loss(self.output, self.gt, window_size=5, reduction="non").mean(dim=(-1,-2,-3))
         loss = torch.mean((0.3*mse) + (0.4*mae) + (0.3*ssim))
 
+        # Compute the psnr_loss as written in the worldstrat codebase.
+        psnr_loss = 10.0 * torch.log10(F.mse_loss(self.output, self.gt))
+
+        loss_dict['psnr_loss'] = psnr_loss
         loss_dict['mse'] = mse
         loss_dict['mae'] = mae
         loss_dict['ssim'] = ssim
