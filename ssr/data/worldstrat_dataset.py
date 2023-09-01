@@ -106,7 +106,10 @@ class WorldStratDataset(data.Dataset):
             lr_ims.append(lr_im)
 
         # Pad to some desired spatial dimensions so all images are consistent.
-        lr_ims = [pad(totensor(im), 160) for im in lr_ims]
+        #lr_ims = [pad(totensor(im), 160) for im in lr_ims]
+
+        # Resize each Sentinel-2 image to the same spatial dimension.
+        lr_ims = [totensor(cv2.resize(im, (160,160))) for im in lr_ims]
 
         img_LR = torch.stack(lr_ims, dim=0)
         if not self.use_3d:

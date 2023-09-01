@@ -1,5 +1,5 @@
 # General Settings
-name: worldstrat_test
+name: worldstrat_esrgan
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -23,7 +23,7 @@ datasets:
     lr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
     hr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
 
-    use_shuffle: False  # shuffle MUST be False if using tile_weights
+    use_shuffle: True  # shuffle MUST be False if using tile_weights
 
     use_hflip: True
     use_rot: False
@@ -32,7 +32,9 @@ datasets:
     batch_size_per_gpu: 2
 
     # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
-    n_s2_images: 2
+    n_s2_images: 8
+
+    all_bands: True
 
     io_backend:
       type: disk
@@ -48,7 +50,9 @@ datasets:
      use_shuffle: False
 
      # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
-     n_s2_images: 2
+     n_s2_images: 8
+
+     all_bands: True
 
      io_backend:
        type: disk
@@ -56,7 +60,7 @@ datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 6  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 104  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
   num_feat: 64
   num_block: 23
