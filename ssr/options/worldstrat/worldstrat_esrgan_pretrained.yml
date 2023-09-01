@@ -1,5 +1,5 @@
 # General Settings
-name: worldstrat_esrgan
+name: worldstrat_esrgan_pretrained
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -25,16 +25,13 @@ datasets:
 
     use_shuffle: True  # shuffle MUST be False if using tile_weights
 
-    use_hflip: True
-    use_rot: False
-
     num_worker_per_gpu: 8
     batch_size_per_gpu: 2
 
     # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
     n_s2_images: 8
 
-    all_bands: True
+    all_bands: False
 
     io_backend:
       type: disk
@@ -52,7 +49,7 @@ datasets:
      # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
      n_s2_images: 8
 
-     all_bands: True
+     all_bands: False
 
      io_backend:
        type: disk
@@ -60,7 +57,7 @@ datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 104  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
   num_feat: 128
   num_block: 23
@@ -79,7 +76,7 @@ network_d:
 # Load in existing weights to the generator and discriminator.
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth
+  pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/experiments/largers-models_esrgan_old_naip_plus_s2/models/net_g_125000.pth
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d:
