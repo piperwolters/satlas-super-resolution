@@ -1,5 +1,5 @@
 # General Settings
-name: worldstrat_esrgan_pretrained2
+name: rrdnbet_discriminator
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -10,46 +10,46 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
-# Whether or not to feed the discriminator Sentinel-2 images.
+# Custom data input args that should be applied to both train and val sets
 feed_disc_s2: True
 
 # Dataset and Dataloader Settings
 datasets:
   train:
     name: train
-    type: WorldStratDataset
+    type: SSRDataset
 
-    # Paths to Sentinel-2 and HR imagery.
-    lr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-    hr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
+    sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
+    naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
 
-    use_shuffle: True  # shuffle MUST be False if using tile_weights
+    old_naip_path: /data/piperw/data/old-naip/
 
+    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
+
+    use_shuffle: False  # shuffle must be false if using tile_weights
+
+    use_hflip: True
+    use_rot: False
     num_worker_per_gpu: 8
     batch_size_per_gpu: 2
 
-    # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
     n_s2_images: 8
-
-    all_bands: False
 
     io_backend:
       type: disk
 
   val:
      name: validation
-     type: WorldStratDataset
+     type: SSRDataset
 
-     # Paths to Sentinel-2 and HR imagery.
-     lr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/lr_dataset/
-     hr_path: /data/piperw/worldstrat/dataset/dataset_download/zenodo-version/hr_dataset/
+     sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
+     naip_path: /data/piperw/super-res/ssr-data/val_set/naip
+
+     old_naip_path: /data/piperw/data/old-naip/
 
      use_shuffle: False
 
-     # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
      n_s2_images: 8
-
-     all_bands: False
 
      io_backend:
        type: disk
@@ -59,27 +59,25 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 128
+  num_feat: 256
   num_block: 23
-  num_grow_ch: 64
+  num_grow_ch: 128
 
 network_d:
-  type: SSR_UNetDiscriminatorSN
-  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB) + S2 images * num_bands, depending what's specified
+  type: SSR_RRDBNet_Discriminator
+  num_in_ch: 30  # number of Sentinel2 images * 3 channels (RGB) + oldnaip + real/fake image
+  num_out_ch: 1
   num_feat: 256
-  skip_connection: True
+  num_block: 23
+  num_grow_ch: 128
 
-  # If wanting to use different first convolutions for the 32x32 and 128x128 input, specify
-  # a list of [num_in_channels_32x32, num_in_channels_128x128] here:
-  # diff_mod_layers: [24, 3]
-
-# Load in existing weights to the generator and discriminator.
+# Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/experiments/largers-models_esrgan_old_naip_plus_s2/models/net_g_125000.pth
+  #pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/satlas_rrdbnet_last.pth 
   param_key_g: params
   strict_load_g: false
-  #pretrain_network_d:
+  #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
@@ -146,10 +144,6 @@ val:
    metrics:
      psnr: # metric name
        type: calculate_psnr
-       crop_border: 4
-       test_y_channel: false
-     ssim:
-       type: calculate_ssim
        crop_border: 4
        test_y_channel: false
 
