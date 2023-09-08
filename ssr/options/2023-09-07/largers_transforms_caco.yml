@@ -1,5 +1,5 @@
 # General Settings
-name: patch_disc_3nlayers_larger
+name: largers_transforms_caco
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -38,6 +38,8 @@ datasets:
     io_backend:
       type: disk
 
+    transforms: True
+
   val:
      name: validation
      type: SSRDataset
@@ -59,24 +61,24 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 256
+  num_feat: 128
   num_block: 23
-  num_grow_ch: 128
+  num_grow_ch: 64
 
 network_d:
-  type: NLayerDiscriminator
-  input_nc: 30  # real/fake input + old naip image * 3 channels (RGB)
-  ndf: 256
-  n_layers: 5
+  type: SSR_UNetDiscriminatorSN
+  num_in_ch: 30  # real/fake input + old naip image * 3 channels (RGB)
+  num_feat: 256
+  skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/satlas_rrdbnet_last.pth 
+  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
-  param_key_d: params
+  #param_key_d: params
   strict_load_d: true
   resume_state: ~
 
@@ -117,12 +119,13 @@ train:
       'conv3_4': 1
       'conv4_4': 1
       'conv5_4': 1
-    vgg_type: vgg19
+    vgg_type: caco_resnet
     use_input_norm: true
     perceptual_weight: !!float 1.0
     style_weight: 0
     range_norm: false
     criterion: l1
+    caco_resnet_weights: /data/piperw/super-res/satlas-super-resolution/weights/resnet50_caco_1m.pth
   # GAN Loss
   gan_opt:
     type: GANLoss

@@ -1,5 +1,5 @@
 # General Settings
-name: patch_disc_3nlayers_larger
+name: largers_mapbox
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -19,14 +19,10 @@ datasets:
     name: train
     type: SSRDataset
 
-    sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
-    naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
+    sentinel2_path: /data/piperw/data/urban_combo_set/s2_condensed_mapbox
+    naip_path: /data/piperw/data/urban_combo_set/naip
 
-    old_naip_path: /data/piperw/data/old-naip/
-
-    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
-
-    use_shuffle: False  # shuffle must be false if using tile_weights
+    use_shuffle: True  # shuffle must be false if using tile_weights
 
     use_hflip: True
     use_rot: False
@@ -45,8 +41,6 @@ datasets:
      sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
      naip_path: /data/piperw/super-res/ssr-data/val_set/naip
 
-     old_naip_path: /data/piperw/data/old-naip/
-
      use_shuffle: False
 
      n_s2_images: 8
@@ -59,24 +53,24 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 256
+  num_feat: 128
   num_block: 23
-  num_grow_ch: 128
+  num_grow_ch: 64
 
 network_d:
-  type: NLayerDiscriminator
-  input_nc: 30  # real/fake input + old naip image * 3 channels (RGB)
-  ndf: 256
-  n_layers: 5
+  type: SSR_UNetDiscriminatorSN
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB)
+  num_feat: 256
+  skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: /data/piperw/super-res/satlas-super-resolution/satlas_rrdbnet_last.pth 
+  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
-  param_key_d: params
+  #param_key_d: params
   strict_load_d: true
   resume_state: ~
 

@@ -54,6 +54,15 @@ class SSRDataset(data.Dataset):
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
 
+        # To apply or not apply torch transforms such as crop and flip.
+        self.transforms = opt['transforms'] if 'transforms' in opt else False
+        if self.transforms:
+            self.transform = torch.nn.Sequential(
+                #torchvision.transforms.RandomCrop(64), # not sure how this will work while S2 and HR are different sizes
+                torchvision.transforms.RandomVerticalFlip(),
+                torchvision.transforms.RandomHorizontalFlip()
+            )
+
         # Flags whether the model being used expects [b, n_images, channels, h, w] or [b, n_images*channels, h, w].
         self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
 
@@ -223,8 +232,19 @@ class SSRDataset(data.Dataset):
                 old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
+
+                if self.transforms:
+                    img_HR, img_old_HR, img_S2 = self.transform([img_HR, img_old_HR, img_S2])
+                    #img_old_HR = self.transform(img_old_HR)
+                    #img_S2 = self.transform(img_S2)
+                    #print("transforms:")
+                    
                 return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index}
             else:
+                if self.transforms:
+                    img_HR = self.transform(img_HR)
+                    img_S2 = self.transform(img_S2)
+        
                 return {'gt': img_HR, 'lq': img_S2, 'Index': index}
 
     def __len__(self):

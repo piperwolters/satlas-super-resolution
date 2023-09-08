@@ -4,6 +4,7 @@ Authors: XPixelGroup
 """
 import cv2
 import torch
+import torchvision
 import torch.nn as nn
 from collections import OrderedDict
 
@@ -69,6 +70,7 @@ class SSRESRGANModel(SRGANModel):
             # perceptual loss
             if self.cri_perceptual:
                 l_g_percep, l_g_style = self.cri_perceptual(self.output, percep_gt)
+
                 if l_g_percep is not None:
                     l_g_total += l_g_percep
                     loss_dict['l_g_percep'] = l_g_percep
@@ -112,6 +114,7 @@ class SSRESRGANModel(SRGANModel):
         for p in self.net_d.parameters():
             p.requires_grad = True
 
+        # If both old naip and sentinel-2 time series were provided to discriminator.
         if (self.old_naip is not None) and self.feed_disc_s2: 
            gan_gt = torch.cat((gan_gt, lq_resized, self.old_naip), dim=1)
            self.output = torch.cat((self.output, lq_resized, self.old_naip), dim=1)
