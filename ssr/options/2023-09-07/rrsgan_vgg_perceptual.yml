@@ -1,5 +1,5 @@
 # General Settings
-name: largers_transforms_caco
+name: rssgan_vgg_perceptual
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -37,8 +37,6 @@ datasets:
 
     io_backend:
       type: disk
-
-    transforms: True
 
   val:
      name: validation
@@ -119,13 +117,13 @@ train:
       'conv3_4': 1
       'conv4_4': 1
       'conv5_4': 1
-    vgg_type: caco_resnet
+    vgg_type: rrsgan_vgg19
     use_input_norm: true
     perceptual_weight: !!float 1.0
     style_weight: 0
     range_norm: false
     criterion: l1
-    caco_resnet_weights: /data/piperw/super-res/satlas-super-resolution/weights/resnet50_caco_1m.pth
+    model_weights: /data/piperw/super-res/satlas-super-resolution/weights/vgg19-dcbb9e9d.pth
   # GAN Loss
   gan_opt:
     type: GANLoss

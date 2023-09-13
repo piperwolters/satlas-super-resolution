@@ -56,6 +56,7 @@ class HighResNet(SRCNN):
         # on readability.
         batch_size, revisits, channels, height, width = x.shape
         x = x.view(batch_size * revisits, channels, height, width)
+
         # Encoded shape: (batch_size * revisits, hidden_channels, height, width)
         x = self.encoder(x)
 
@@ -64,14 +65,16 @@ class HighResNet(SRCNN):
         )
 
         x = x.view(batch_size, revisits, hidden_channels + mask_channels, height, width)
+
         # Fused shape: (batch_size, hidden_channels, height, width)
         x = self.fusion(x)
+
         # Super-resolved shape:
         # (batch_size, out_channels, height * zoom_factor, width * zoom_factor)
         x = self.sr(x)
 
         # Ensure output size of (batch_size, channels, height, width)
-        #x = self.resize(x)
+        x = self.resize(x)
 
         # Pad with empty revisit dimension: (batch_size, 1, channels, height, width)
         x = x[:, None]

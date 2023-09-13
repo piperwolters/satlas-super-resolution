@@ -16,6 +16,10 @@ class WorldStratModel(SRModel):
     def __init__(self, opt):
         super(WorldStratModel, self).__init__(opt)
 
+        # Optional: load in pretrained WorldStrat weights.
+        #tmp_weights = torch.load('/data/piperw/super-res/satlas-super-resolution/weights/worldstrat_weights/highresnet.pth')
+        #self.net_g.load_state_dict(tmp_weights, strict=True)
+
     @torch.no_grad()
     def feed_data(self, data):
         self.lq = data['lq'].to(self.device)

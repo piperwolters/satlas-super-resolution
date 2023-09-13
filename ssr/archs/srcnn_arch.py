@@ -124,7 +124,6 @@ class SRCNN(nn.Module):
             zoom_factor=zoom_factor,
             use_batchnorm=self.use_batchnorm,
         )
-
         self.resize = Resize(
             self.output_size,
             interpolation="bilinear",
@@ -198,8 +197,10 @@ class SRCNN(nn.Module):
         # Fused shape: (batch_size, hidden_channels, height, width)
         x = self.fusion(x)
         x = self.sr(x)
+
         # Ensure output size of (batch_size, channels, height, width)
-        #x = self.resize(x)
+        x = self.resize(x)
+
         # Pad with empty revisit dimension: (batch_size, 1, channels, height, width)
         x = x[:, None]
         return x
