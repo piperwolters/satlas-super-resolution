@@ -24,7 +24,7 @@ datasets:
 
     old_naip_path: /data/piperw/data/old-naip/
 
-    osm_path: /data/piperw/data/urban_set/osm_masks/
+    osm_path: /data/piperw/data/urban_set/osm_chips_to_masks.json
 
     tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
 
@@ -49,7 +49,7 @@ datasets:
 
      old_naip_path: /data/piperw/data/old-naip/
 
-     osm_path: /data/piperw/data/urban_set/osm_masks/
+     osm_path: /data/piperw/data/urban_set/osm_chips_to_masks.json
 
      use_shuffle: False
 
