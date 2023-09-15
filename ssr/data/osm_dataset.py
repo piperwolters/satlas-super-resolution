@@ -84,12 +84,13 @@ class OSMDataset(data.Dataset):
         if not (os.path.exists(self.s2_path) and os.path.exists(self.naip_path)):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
-        self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
-
         # Load in the big json containing maps from chips to OSM object bounds.
         osm_file = open(opt['osm_path'])
         osm_data = json.load(osm_file)
-        print("Found ", len(osm_data.keys()), " keys in osm dict.")
+
+        self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
+        
+        self.skipped = 0
 
         self.datapoints = []
         for n in self.naip_chips:
@@ -98,19 +99,17 @@ class OSMDataset(data.Dataset):
             chip = split_path[-1][:-4]
             tile = int(chip.split('_')[0]) // 16, int(chip.split('_')[1]) // 16
 
+            # NOTE: for now skip chips that do not have at least 5 OSM objects
+            if not (chip in osm_data and sum([len(osm_data[chip][k]) for k in osm_data[chip].keys()]) >= 5):
+                self.skipped += 1
+                continue
+
             # If old_naip_path is specified, grab an old naip chip for the current datapoint.
             if self.old_naip_path is not None:
                 if len(old_naip_tiles[chip]) < 1:
                     old_chip = chip # NOTE: this should only be 1 lil chip where this fails, to fix later
 
                 old_chip = old_naip_tiles[chip][0]
-
-            # Extract the chip objects from the preprocessed dict, if there are OSM features in this chip.
-            # NOTE: for now, skipping chips that don't have at least 5 objects in them.
-            if chip in osm_data and sum([len(osm_data[chip][k]) for k in osm_data[chip].keys()]):
-                chip_objs = osm_data[chip]
-            else:
-                continue
 
             # Now compute the corresponding Sentinel-2 tiles.
             s2_left_corner = tile[0] * 16, tile[1] * 16
@@ -127,12 +126,13 @@ class OSMDataset(data.Dataset):
                     s2_path.append(p)
 
             if self.old_naip_path:
-                self.datapoints.append([n, s2_path, old_chip, chip_objs])
+                self.datapoints.append([chip, n, s2_path, old_chip])
             else:
-                self.datapoints.append([n, s2_path, chip_objs])
+                self.datapoints.append([chip, n, s2_path])
 
         self.data_len = len(self.datapoints)
         print("Number of datapoints for split ", self.split, ": ", self.data_len)
+        print("Skipped ", self.skipped, " tiles because not enough OSM objects.")
 
     def get_tile_weight_sampler(self, tile_weights):
         weights = []
@@ -166,33 +166,12 @@ class OSMDataset(data.Dataset):
             datapoint = self.datapoints[index]
 
             if self.old_naip_path:
-                naip_path, s2_path, old_naip_path, chip_objs = datapoint[0], datapoint[1], datapoint[2], datapoint[3]
+                chip, naip_path, s2_path, old_naip_path = datapoint[0], datapoint[1], datapoint[2], datapoint[3]
             else:
-                naip_path, s2_path, chip_objs = datapoint[0], datapoint[1], datapoint[2]
+                chip, naip_path, s2_path = datapoint[0], datapoint[1], datapoint[2]
 
             # Load the 512x512 NAIP chip.
             naip_chip = skimage.io.imread(naip_path)
-
-            # Extract OSM objects in this chip by randomly picking a subset.
-            gt_extracted_objs = []
-            for k,v in chip_objs.items():
-                print(k)
-                for i,o in enumerate(v):
-                    x1, y1, x2, y2 = o
-                    extract = naip_chip[y1:y2, x1:x2 :]
-                    shp = extract.shape
-                    if shp[0] == 0 or shp[1] == 0:
-                        continue
-                    rshp_extract = cv2.resize(extract, (32,32))
-                    gt_extracted_objs.append(rshp_extract)
-            print("number of extracted objs:", len(gt_extracted_objs))
-            if len(gt_extracted_objs) > 1:
-                gt_objs = np.array(gt_extracted_objs)
-                print(gt_objs.shape)
-                gt_objs = torch.from_numpy(gt_objs)
-                print(gt_objs.shape)
-            else:
-                gt_objs = None
 
             # Check for black pixels (almost certainly invalid) and skip if found.
             if [0, 0, 0] in naip_chip:
@@ -263,9 +242,9 @@ class OSMDataset(data.Dataset):
                 old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
-                return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index, 'gt_objs': gt_objs, 'osm': chip_objs}
+                return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index, 'Chip': chip} 
             else:
-                return {'gt': img_HR, 'lq': img_S2, 'Index': index, 'gt_objs': gt_objs, 'osm': chip_objs}
+                return {'gt': img_HR, 'lq': img_S2, 'Index': index, 'Chip': chip}
 
     def __len__(self):
         return self.data_len
