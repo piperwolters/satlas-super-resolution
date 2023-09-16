@@ -160,6 +160,10 @@ class SSRDataset(data.Dataset):
             # Load the 512x512 NAIP chip.
             naip_chip = skimage.io.imread(naip_path)
 
+            # Specific if statement for when we're using mapbox images...
+            if naip_chip.shape[0] == 512:
+                naip_chip = cv2.resize(naip_chip, (128,128))
+
             # Check for black pixels (almost certainly invalid) and skip if found.
             if [0, 0, 0] in naip_chip:
                 counter += 1
