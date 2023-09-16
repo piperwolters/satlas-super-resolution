@@ -33,6 +33,9 @@ class OSMESRGANModel(SRGANModel):
         osm_file = open(opt['datasets']['train']['osm_path'])
         self.osm_data = json.load(osm_file)
 
+        self.osm_obj_weight = opt['osm_obj_weight']
+        self.n_osm_objs = opt['n_osm_objs']
+
     @torch.no_grad()
     def feed_data(self, data):
         self.lq = data['lq'].to(self.device)
@@ -101,7 +104,7 @@ class OSMESRGANModel(SRGANModel):
             gens = gen_extracted_objs[b]
 
             # Randomly pick a subset of objects for the current image.
-            rand_idxs = random.sample([i for i in range(0, len(gts))], 5)
+            rand_idxs = random.sample([i for i in range(0, len(gts))], self.n_osm_objs)
 
             gt_objs.append(torch.stack([gts[g] for g in range(len(gts)) if g in rand_idxs]))
             gen_objs.append(torch.stack([gens[g] for g in range(len(gens)) if g in rand_idxs]))
@@ -152,13 +155,16 @@ class OSMESRGANModel(SRGANModel):
                 # gan loss
                 fake_g_pred, obj_pred = self.net_d(self.output, gen_objs)
 
-            print("fake_g_pred:", fake_g_pred.shape, " & obj_pred:", obj_pred.shape)
+            # For now, take the mean of each image's 5 object predictions.
+            obj_pred_avg = torch.stack([torch.mean(obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
 
             l_g_gan = self.cri_gan(fake_g_pred, True, is_disc=False)
-            print("l_g_gan with fake_g_pred:", l_g_gan)
-            print("obj_pred l_g_gan?:", self.cri_gan(obj_pred, True, is_disc=False))
+            l_g_gan_objs = self.osm_obj_weight * self.cri_gan(obj_pred_avg, True, is_disc=False)
+
             l_g_total += l_g_gan
+            l_g_total += l_g_gan_objs
             loss_dict['l_g_gan'] = l_g_gan
+            loss_dict['l_g_gan_objs'] = l_g_gan_objs
 
             l_g_total.backward()
             self.optimizer_g.step()
@@ -188,20 +194,35 @@ class OSMESRGANModel(SRGANModel):
 
         # real
         real_d_pred, real_obj_pred = self.net_d(gan_gt, gt_objs)
+
+        real_obj_pred_avg = torch.stack([torch.mean(real_obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+        l_d_real_objs = self.osm_obj_weight * self.cri_gan(real_obj_pred_avg, True, is_disc=True)
+
         l_d_real = self.cri_gan(real_d_pred, True, is_disc=True)
+        l_d_real_tot = l_d_real + l_d_real_objs
+
         loss_dict['l_d_real'] = l_d_real
+        loss_dict['l_d_real_objs'] = l_d_real_objs
         loss_dict['out_d_real'] = torch.mean(real_d_pred.detach())
-        l_d_real.backward()
+        l_d_real_tot.backward()
 
         # fake
         if self.feed_disc_s2 and self.diff_mod_layers is not None:
             fake_d_pred, fake_obj_pred = self.net_d([self.output[0], self.output[1].detach().clone()])
         else:
-            fake_d_pred, fake_obj_pred = self.net_d(self.output.detach().clone(), gen_objs)  # clone for pt1.9
+            fake_d_pred, fake_obj_pred = self.net_d(self.output.detach().clone(), gen_objs.detach().clone())  # clone for pt1.9
+
+        fake_obj_pred_avg = torch.stack([torch.mean(fake_obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+        l_d_fake_objs = self.osm_obj_weight * self.cri_gan(fake_obj_pred_avg, True, is_disc=True)
+
         l_d_fake = self.cri_gan(fake_d_pred, False, is_disc=True)
+        l_d_fake_tot = l_d_fake + l_d_fake_objs
+
+        loss_dict['l_d_fake_objs'] = l_d_fake_objs
         loss_dict['l_d_fake'] = l_d_fake
         loss_dict['out_d_fake'] = torch.mean(fake_d_pred.detach())
-        l_d_fake.backward()
+        l_d_fake_tot.backward()
+
         self.optimizer_d.step()
 
         if self.ema_decay > 0:

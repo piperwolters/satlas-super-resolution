@@ -67,7 +67,8 @@ class OSMDiscriminator(nn.Module):
         o6 = F.leaky_relu(self.o_conv6(o5), negative_slope=0.2, inplace=True)
         if self.skip_connection:
             o6 = o6 + o0
-        o_out = F.leaky_relu(self.o_conv7(o6), negative_slope=0.2, inplace=True)
+        o7 = F.interpolate(o6, scale_factor=4, mode='bilinear', align_corners=False)
+        o_out = F.leaky_relu(self.o_conv7(o7), negative_slope=0.2, inplace=True)
         o_out = F.leaky_relu(self.o_conv8(o_out), negative_slope=0.2, inplace=True)
         o_out = self.o_conv9(o_out)
 
