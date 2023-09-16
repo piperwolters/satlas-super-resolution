@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_osmdataset_test
+name: baseline4esrgan_osmdataset_test
 model_type: OSMESRGANModel
 scale: 4
 num_gpu: auto
@@ -133,7 +133,7 @@ train:
     gan_type: vanilla
     real_label_val: 1.0
     fake_label_val: 0.0
-    loss_weight: 10.0 #!!float 1e-1
+    loss_weight: !!float 1e-1
 
   net_d_iters: 1
   net_d_init_iters: 0

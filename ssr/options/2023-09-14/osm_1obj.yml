@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_osmdataset_test
+name: osmdataset_1obj
 model_type: OSMESRGANModel
 scale: 4
 num_gpu: auto
@@ -12,6 +12,11 @@ gan_gt_usm: False
 
 # Custom data input args that should be applied to both train and val sets
 feed_disc_s2: True
+
+# Weight for OSM object loss within GAN loss calculation
+osm_obj_weight: 0.2
+# Min number of OSM features per tile to be used. Currently clipped to this number.
+n_osm_objs: 1
 
 # Dataset and Dataloader Settings
 datasets:
@@ -133,7 +138,7 @@ train:
     gan_type: vanilla
     real_label_val: 1.0
     fake_label_val: 0.0
-    loss_weight: 10.0 #!!float 1e-1
+    loss_weight: !!float 1e-1
 
   net_d_iters: 1
   net_d_init_iters: 0
