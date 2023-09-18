@@ -36,6 +36,8 @@ class OSMESRGANModel(SRGANModel):
         self.osm_obj_weight = opt['osm_obj_weight']
         self.n_osm_objs = opt['n_osm_objs']
 
+        self.ssim_loss = opt['ssim_loss'] if 'ssim_loss' in opt else False
+
     @torch.no_grad()
     def feed_data(self, data):
         self.lq = data['lq'].to(self.device)
@@ -47,8 +49,11 @@ class OSMESRGANModel(SRGANModel):
         if 'old_naip' in data:
             self.old_naip = data['old_naip'].to(self.device)
 
-        # List of dictionaries of objects for each chip in this batch.
-        self.chip_objs = [self.osm_data[data['Chip'][c]] for c in range(len(data['Chip']))]
+        if data['Phase'][0] == 'train':
+            # List of dictionaries of objects for each chip in this batch. Only for training.
+            self.chip_objs = [self.osm_data[data['Chip'][c]] for c in range(len(data['Chip']))]
+        else:
+            self.chip_objs = []
 
         self.feed_disc_s2 = True if ('feed_disc_s2' in self.opt and self.opt['feed_disc_s2']) else False
         self.diff_mod_layers = self.opt['network_d']['diff_mod_layers'] if 'diff_mod_layers' in self.opt['network_d'] else None
@@ -71,6 +76,10 @@ class OSMESRGANModel(SRGANModel):
 
         self.optimizer_g.zero_grad()
         self.output = self.net_g(self.lq)
+
+        ssim = 0.0
+        if self.ssim_loss:
+            ssim = torch.mean(kornia.losses.ssim_loss(self.output, l1_gt, window_size=5, reduction="none").mean(dim=(-1,-2,-3)))
 
         # Extract OSM objects in this chip and resize them to standard size.
         gt_extracted_objs = []
@@ -117,8 +126,9 @@ class OSMESRGANModel(SRGANModel):
             # pixel loss
             if self.cri_pix:
                 l_g_pix = self.cri_pix(self.output, l1_gt)
-                l_g_total += l_g_pix 
+                l_g_total += l_g_pix + ssim
                 loss_dict['l_g_pix'] = l_g_pix
+                loss_dict['l_g_ssim'] = ssim
             # perceptual loss
             if self.cri_perceptual:
                 l_g_percep, l_g_style = self.cri_perceptual(self.output, percep_gt)
@@ -155,8 +165,11 @@ class OSMESRGANModel(SRGANModel):
                 # gan loss
                 fake_g_pred, obj_pred = self.net_d(self.output, gen_objs)
 
+            ## Get object prediction scores for trial one architecture:
             # For now, take the mean of each image's 5 object predictions.
-            obj_pred_avg = torch.stack([torch.mean(obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+            #obj_pred_avg = torch.stack([torch.mean(obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+            ## Get prediction scores for trial 2 architecture:
+            obj_pred_avg = obj_pred.squeeze(-1).squeeze(-1)
 
             l_g_gan = self.cri_gan(fake_g_pred, True, is_disc=False)
             l_g_gan_objs = self.osm_obj_weight * self.cri_gan(obj_pred_avg, True, is_disc=False)

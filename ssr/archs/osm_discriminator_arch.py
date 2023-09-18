@@ -18,6 +18,8 @@ class OSMDiscriminator(nn.Module):
         self.skip_connection = skip_connection
         norm = spectral_norm
 
+        """
+        ### First trial - same layers as regular discriminator
         # osm layers
         self.o_conv0 = nn.Conv2d(3, num_feat, kernel_size=3, stride=1, padding=1)
         # downsample
@@ -32,6 +34,12 @@ class OSMDiscriminator(nn.Module):
         self.o_conv7 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
         self.o_conv8 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
         self.o_conv9 = nn.Conv2d(num_feat, 1, 3, 1, 1)
+        """
+        ### Second trial - far smaller & simpler
+        self.o_conv0 = nn.Conv2d(3, 32, kernel_size=1, stride=3, padding=1)
+        self.o_conv1 = nn.Conv2d(32, 64, kernel_size=1, stride=3, padding=1)
+        self.o_conv2 = nn.Conv2d(64, 128, kernel_size=1, stride=3, padding=1)
+        self.o_conv3 = nn.Conv2d(128, 1, 1, 3, 0)
 
         # the first convolution
         self.conv0 = nn.Conv2d(num_in_ch, num_feat, kernel_size=3, stride=1, padding=1)
@@ -50,6 +58,7 @@ class OSMDiscriminator(nn.Module):
 
     def forward(self, x, osm_objs):
 
+        """
         # osm convolutions
         o0 = F.leaky_relu(self.o_conv0(osm_objs), negative_slope=0.2, inplace=True)
         o1 = F.leaky_relu(self.o_conv1(o0), negative_slope=0.2, inplace=True)
@@ -71,6 +80,13 @@ class OSMDiscriminator(nn.Module):
         o_out = F.leaky_relu(self.o_conv7(o7), negative_slope=0.2, inplace=True)
         o_out = F.leaky_relu(self.o_conv8(o_out), negative_slope=0.2, inplace=True)
         o_out = self.o_conv9(o_out)
+        """
+
+        # osm layers
+        o0 = F.leaky_relu(self.o_conv0(osm_objs), negative_slope=0.2, inplace=True)
+        o1 = F.leaky_relu(self.o_conv1(o0), negative_slope=0.2, inplace=True)
+        o2 = F.leaky_relu(self.o_conv2(o1), negative_slope=0.2, inplace=True)
+        o_out = F.leaky_relu(self.o_conv3(o2), negative_slope=0.2, inplace=True)
 
         # downsample
         x0 = F.leaky_relu(self.conv0(x), negative_slope=0.2, inplace=True)

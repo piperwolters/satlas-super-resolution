@@ -85,8 +85,9 @@ class OSMDataset(data.Dataset):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
         # Load in the big json containing maps from chips to OSM object bounds.
-        osm_file = open(opt['osm_path'])
-        osm_data = json.load(osm_file)
+        if self.split == 'train':
+            osm_file = open(opt['osm_path'])
+            osm_data = json.load(osm_file)
 
         self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
         
@@ -100,7 +101,7 @@ class OSMDataset(data.Dataset):
             tile = int(chip.split('_')[0]) // 16, int(chip.split('_')[1]) // 16
 
             # NOTE: for now skip chips that do not have at least 5 OSM objects
-            if not (chip in osm_data and sum([len(osm_data[chip][k]) for k in osm_data[chip].keys()]) >= 5):
+            if self.split == 'train' and not (chip in osm_data and sum([len(osm_data[chip][k]) for k in osm_data[chip].keys()]) >= 5):
                 self.skipped += 1
                 continue
 
@@ -242,9 +243,9 @@ class OSMDataset(data.Dataset):
                 old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
-                return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index, 'Chip': chip} 
+                return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index, 'Chip': chip, 'Phase': self.split} 
             else:
-                return {'gt': img_HR, 'lq': img_S2, 'Index': index, 'Chip': chip}
+                return {'gt': img_HR, 'lq': img_S2, 'Index': index, 'Chip': chip, 'Phase': self.split}
 
     def __len__(self):
         return self.data_len
