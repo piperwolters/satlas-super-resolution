@@ -148,6 +148,7 @@ class WorldStratDataset(data.Dataset):
         if not self.all_bands:
             hr_im = skimage.io.imread(hr_path)[:, :, 0:3]
             hr_im = cv2.resize(hr_im, (640, 640)) # NOTE: temporarily downsizing the HR image to match the SR image
+            hr_im = totensor(hr_im)
         else:
             hr_raster = gdal.Open(hr_path)
             hr_im = hr_raster.ReadAsArray()

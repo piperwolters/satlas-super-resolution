@@ -1,5 +1,5 @@
 # General Settings
-name: try2_baseline
+name: try2
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -10,7 +10,7 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
-# Custom data input args that should be applied to both train and val sets
+# Whether or not to feed the discriminator Sentinel-2 images.
 feed_disc_s2: True
 
 # Dataset and Dataloader Settings
@@ -19,22 +19,26 @@ datasets:
     name: train
     type: SSRDataset
 
-    #sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
-    #naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
-    sentinel2_path: /data/piperw/data/urban_set/s2_condensed
-    naip_path: /data/piperw/data/urban_set/naip_128
+    # Paths to Sentinel-2 and NAIP imagery.
+    sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
+    naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
 
-    old_naip_path: /data/piperw/data/old-naip/
+    # (Optional) path to old NAIP images, between 2016-2018. If specified, old NAIP will be
+    # provided to the discriminator as additional input.
+    #old_naip_path: /data/piperw/data/old-naip/
 
-    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
+    # (Optional) json with tile weights for training time.
+    #tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
 
-    use_shuffle: False  # shuffle must be false if using tile_weights
+    use_shuffle: False  # shuffle MUST be False if using tile_weights
 
     use_hflip: True
     use_rot: False
+
     num_worker_per_gpu: 8
     batch_size_per_gpu: 32
 
+    # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
     n_s2_images: 8
 
     io_backend:
@@ -44,15 +48,17 @@ datasets:
      name: validation
      type: SSRDataset
 
-     #sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
-     #naip_path: /data/piperw/super-res/ssr-data/val_set/naip
-     sentinel2_path: /data/piperw/data/held_out_set/s2_condensed
-     naip_path: /data/piperw/data/held_out_set/naip_128
+     # Paths to Sentinel-2 and NAIP imagery.
+     sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
+     naip_path: /data/piperw/super-res/ssr-data/val_set/naip
 
-     old_naip_path: /data/piperw/data/old-naip/
+     # (Optional) path to old NAIP images, between 2016-2018. If specified, old NAIP will be
+     # provided to the discriminator as additional input.
+     #old_naip_path: /data/piperw/data/old-naip/
 
      use_shuffle: False
 
+     # Number of Sentinel-2 images to use as input to generator (and discriminator if feed_disc_s2=True).
      n_s2_images: 8
 
      io_backend:
@@ -68,18 +74,22 @@ network_g:
   num_grow_ch: 32
 
 network_d:
-  type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 30  # real/fake input + old naip image * 3 channels (RGB)
+  type: SSR_UNetDiscriminatorSN
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB) + S2 images * num_bands, depending what's specified
   num_feat: 64
   skip_connection: True
 
-# Load in existing weights to the generator and discriminator
+  # If wanting to use different first convolutions for the 32x32 and 128x128 input, specify
+  # a list of [num_in_channels_32x32, num_in_channels_128x128] here:
+  # diff_mod_layers: [24, 3]
+
+# Load in existing weights to the generator and discriminator.
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  #pretrain_network_g: weights/satlas32_rrdbnet_last.pth
   param_key_g: params
   strict_load_g: false
-  #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
+  #pretrain_network_d:
   param_key_d: params
   strict_load_d: true
   resume_state: ~
@@ -148,7 +158,7 @@ val:
        type: calculate_psnr
        crop_border: 4
        test_y_channel: false
-     ssim: # metric name
+     ssim:
        type: calculate_ssim
        crop_border: 4
        test_y_channel: false
@@ -156,7 +166,7 @@ val:
 # Logging Settings
 logger:
   print_freq: 1000
-  save_checkpoint_freq: !!float 5e3 
+  save_checkpoint_freq: !!float 5e3
   use_tb_logger: true
   wandb:
     project: multisat

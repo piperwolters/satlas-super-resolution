@@ -152,7 +152,9 @@ class Try2(nn.Module):
         feat = x
         n_b, n_c, n_h, n_w = feat.shape
         n_len = n_c//3
-        assert n_len==16
+        print("feat shape:", feat.shape)
+        print("n_len:", n_len)
+        assert n_len==8
         feat = feat.reshape(n_b*16, 3, n_h, n_w)
         feat = self.initial_layers(feat)
         feat = feat.reshape(n_b*8, self.num_feat*2, n_h, n_w)

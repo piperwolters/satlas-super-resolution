@@ -1,5 +1,5 @@
 # General Settings
-name: try2_baseline
+name: satlas32_baseline
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -60,23 +60,23 @@ datasets:
 
 # Network Structures
 network_g:
-  type: Try2
+  type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 64
+  num_feat: 128
   num_block: 23
-  num_grow_ch: 32
+  num_grow_ch: 64
 
 network_d:
   type: SSR_UNetDiscriminatorSN 
   num_in_ch: 30  # real/fake input + old naip image * 3 channels (RGB)
-  num_feat: 64
+  num_feat: 256
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  pretrain_network_g: weights/larger_satlas32.pth
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth

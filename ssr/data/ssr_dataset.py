@@ -176,22 +176,17 @@ class SSRDataset(data.Dataset):
                     s2_images = skimage.io.imread(s2_path[0])
                 else:
                     s2_images = []
+                    assert(len(s2_path) == 10)
                     for i,band in enumerate(s2_path):
-                        band_im = skimage.io.imread(band)
-                        if len(band_im.shape) == 3:
-                            rshp = np.reshape(band_im, (-1, 32, 32, band_im.shape[-1]))
+                        if os.path.exists(band):
+                            band_im = skimage.io.imread(band)
                         else:
-                            rshp = np.reshape(band_im, (-1, 32, 32))
-                        cut = np.reshape(rshp[:self.n_s2_images], (-1, 32, 32))
-
-                        if self.use_3d:
-                            print("WARNING: use_3d not yet implemented for more bands")
-
-                        if i == 0:
-                            s2_images = totensor(cut)
-                        else:
-                            s2_images = torch.cat((s2_images, cut), dim=0)
-
+                            if 'tci' in band:
+                                band_im = np.zeros((self.n_s2_images, 32, 32, 3))
+                            else:
+                                band_im = np.zeros((self.n_s2_images, 32, 32, 1))
+                        
+                        s2_images.append(band_im)
             except:
                 counter += 1
                 continue
@@ -225,9 +220,52 @@ class SSRDataset(data.Dataset):
                 else:
                     img_S2 = torch.cat(s2_chunks)
             else:
-                img_S2 = s2_images
+                # Iterate through n_s2_images for the tci band and consider a tci image with black pixels as "bad".
+                # Extract the arrays for each band of the good images and format final tensor.
+                tci_chunks = np.reshape(s2_images[1], (-1, 32, 32, 3))
+                goods, bads = [], []
+                for i,im in enumerate(tci_chunks):
+                    s2_chunk = np.reshape(im, (-1, 32, 32, 3))
 
-            img_HR = totensor(naip_chip)
+                    if [0, 0, 0] in s2_chunk:
+                        bads.append(i)
+                    else:
+                        goods.append(i)
+
+                # Pick N random indices of s2 images to use. Skip ones that are partially black.
+                if len(goods) >= self.n_s2_images:
+                    rand_indices = random.sample(goods, self.n_s2_images)
+                else:
+                    need = self.n_s2_images - len(goods)
+                    if len(bads) < need:
+                        rand_indices = goods + goods[:need]
+                    else:
+                        rand_indices = goods + random.sample(bads, need)
+
+                s2_chunks = []
+                for i in rand_indices:
+                    # For each band, we want to extract the ones relevant to the random S2 images chosen.
+                    for band in range(len(self.s2_bands)):
+                        shp = s2_images[band].shape
+                        if shp[-1] == 3:
+                            im = np.reshape(s2_images[band], (-1, 32, 32, 3))
+                        elif shp[-1] == 1:
+                            im = np.reshape(s2_images[band], (-1, 32, 32, 1))
+                        else:
+                            im = np.reshape(s2_images[band], (-1, 32, 32, 1))
+
+                        subset_im = np.array([im[x] for x in rand_indices])
+                        subset_im = np.transpose(subset_im, (0, 3, 1, 2))
+
+                        if band == 0:
+                            s2_chunks = torch.tensor(subset_im)
+                        else:
+                            s2_chunks = torch.cat((s2_chunks, torch.tensor(subset_im)), dim=1)
+
+                img_S2 = s2_chunks.type(torch.FloatTensor)
+                img_S2 = torch.reshape(img_S2, (img_S2.shape[0]*img_S2.shape[1], 32, 32)) 
+
+            img_HR = totensor(naip_chip).type(torch.FloatTensor)
 
             if self.old_naip_path is not None:
                 old_naip_chip = skimage.io.imread(old_naip_path)

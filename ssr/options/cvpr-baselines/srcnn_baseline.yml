@@ -1,6 +1,6 @@
 # General Settings
-name: try2_baseline
-model_type: SSRESRGANModel
+name: srcnn_baseline
+model_type: WorldStratModel
 scale: 4
 num_gpu: auto
 manual_seed: 0
@@ -10,28 +10,21 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
-# Custom data input args that should be applied to both train and val sets
-feed_disc_s2: True
-
 # Dataset and Dataloader Settings
 datasets:
   train:
     name: train
     type: SSRDataset
 
-    #sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
-    #naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
     sentinel2_path: /data/piperw/data/urban_set/s2_condensed
     naip_path: /data/piperw/data/urban_set/naip_128
-
-    old_naip_path: /data/piperw/data/old-naip/
 
     tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    use_hflip: True
-    use_rot: False
+    use_3d: True
+
     num_worker_per_gpu: 8
     batch_size_per_gpu: 32
 
@@ -44,34 +37,31 @@ datasets:
      name: validation
      type: SSRDataset
 
-     #sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
-     #naip_path: /data/piperw/super-res/ssr-data/val_set/naip
      sentinel2_path: /data/piperw/data/held_out_set/s2_condensed
      naip_path: /data/piperw/data/held_out_set/naip_128
 
-     old_naip_path: /data/piperw/data/old-naip/
-
      use_shuffle: False
+
+     use_3d: True
 
      n_s2_images: 8
 
      io_backend:
        type: disk
 
-# Network Structures
+# Network Structure
 network_g:
-  type: Try2
-  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
-  num_out_ch: 3
-  num_feat: 64
-  num_block: 23
-  num_grow_ch: 32
-
-network_d:
-  type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 30  # real/fake input + old naip image * 3 channels (RGB)
-  num_feat: 64
-  skip_connection: True
+  type: SRCNN
+  in_channels: 3
+  mask_channels: 0  # idk what this
+  hidden_channels: 128
+  out_channels: 3
+  kernel_size: 3
+  residual_layers: 1
+  output_size: 128,128
+  revisits: 8
+  zoom_factor: 4
+  sr_kernel_size: 1
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
@@ -86,7 +76,6 @@ path:
 
 # Training Settings
 train:
-  ema_decay: 0.999
   optim_g:
     type: Adam
     lr: !!float 1e-4

@@ -125,7 +125,9 @@ class SRCNN(nn.Module):
             use_batchnorm=self.use_batchnorm,
         )
         self.resize = Resize(
-            self.output_size,
+            #self.output_size,
+            #(128,128), # naip/s2
+            (640,640), # worldstrat
             interpolation="bilinear",
             align_corners=False,
             antialias=True,
