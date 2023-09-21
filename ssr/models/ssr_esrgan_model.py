@@ -72,9 +72,11 @@ class SSRESRGANModel(SRGANModel):
                 ssim = 0.0
                 if self.ssim_loss:
                     ssim = torch.mean(kornia.losses.ssim_loss(self.output, l1_gt, window_size=5, reduction="none").mean(dim=(-1,-2,-3)))
-                 
-                l_g_total += l_g_pix + ssim
-                loss_dict['l_ssim'] = ssim
+                if not ssim == 0.0:
+                    l_g_total += ssim
+                    loss_dict['l_ssim'] = ssim
+
+                l_g_total += l_g_pix
                 loss_dict['l_g_pix'] = l_g_pix
             # perceptual loss
             if self.cri_perceptual:

@@ -73,7 +73,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data_dir', type=str, help="Path to the directory containing images.")
     parser.add_argument('-w', '--weights_path', type=str, default="weights/esrgan_orig_6S2.pth", help="Path to the model weights.")
-    parser.add_argument('--n_s2_images', type=int, default=6, help="Number of Sentinel-2 images as input, must correlate to correct model weights.")
+    parser.add_argument('--n_s2_images', type=int, default=8, help="Number of Sentinel-2 images as input, must correlate to correct model weights.")
     parser.add_argument('--save_path', type=str, default="outputs", help="Directory where generated outputs will be saved.")
     parser.add_argument('--stitch', action='store_true', help="If running on 16x16 grid of Sentinel-2 images, option to stitch together whole image.")
     parser.add_argument('--extra_res_weights', help="Weights to a trained 4x->16x model. Doesn't currently work with stitch I don't think.")
@@ -86,7 +86,8 @@ if __name__ == "__main__":
     extra_res_weights = args.extra_res_weights
 
     # Initialize generator model and load in specified weights.
-    model = RRDBNet(num_in_ch=n_s2_images*3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
+    #model = RRDBNet(num_in_ch=n_s2_images*3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
+    model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
     state_dict = torch.load(args.weights_path)
     model.load_state_dict(state_dict['params_ema'])
     model.eval()
@@ -120,7 +121,7 @@ if __name__ == "__main__":
         output = infer(im, n_s2_images, device, model2)
 
         output = output.squeeze().cpu().detach().numpy()
-        output = np.transpose(output, (1, 2, 0))  # transpose to [h, w, 3] to save as image
+        output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
         skimage.io.imsave(save_fn, output, check_contrast=False)
 
     # If the --stitch flag was specified, we will stitch together the 16x16 grid of super resolved

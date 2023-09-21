@@ -1,5 +1,5 @@
 # General Settings
-name: sep18_buildings  # changed object discriminator to just a few convolutional layers
+name: sep18_buildings_attndisc  # changed object discriminator to just a few convolutional layers
 model_type: OSMESRGANModel
 scale: 4
 num_gpu: auto
@@ -71,7 +71,7 @@ network_g:
   num_grow_ch: 32
 
 network_d:
-  type: OSMDiscriminator
+  type: OSMAttnDiscriminator
   num_in_ch: 30
   num_feat: 256
   skip_connection: True

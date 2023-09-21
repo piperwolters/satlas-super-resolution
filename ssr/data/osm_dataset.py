@@ -101,7 +101,8 @@ class OSMDataset(data.Dataset):
             tile = int(chip.split('_')[0]) // 16, int(chip.split('_')[1]) // 16
 
             # NOTE: for now skip chips that do not have at least 5 OSM objects
-            if self.split == 'train' and not (chip in osm_data and sum([len(osm_data[chip][k]) for k in osm_data[chip].keys()]) >= 5):
+            if self.split == 'train' and not (chip in osm_data and sum([len(osm_data[chip][k]) for k in osm_data[chip].keys()]) >= 1):
+            #if self.split == 'train' and not (chip in osm_data and 'building' in osm_data[chip] and len(osm_data[chip]['building']) >= 5):
                 self.skipped += 1
                 continue
 

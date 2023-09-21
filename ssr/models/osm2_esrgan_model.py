@@ -17,7 +17,7 @@ from basicsr.utils.registry import MODEL_REGISTRY
 
 
 @MODEL_REGISTRY.register()
-class OSMESRGANModel(SRGANModel):
+class OSMESRGANModel2(SRGANModel):
     """
     SSR ESRGAN Model: Training Satellite Imagery Super Resolution with Paired Training Data.
 
@@ -26,7 +26,7 @@ class OSMESRGANModel(SRGANModel):
     """
 
     def __init__(self, opt):
-        super(OSMESRGANModel, self).__init__(opt)
+        super(OSMESRGANModel2, self).__init__(opt)
         self.usm_sharpener = USMSharp().cuda()  # do usm sharpening
 
         # Load in the big json containing maps from chips to OSM object bounds.
@@ -172,9 +172,8 @@ class OSMESRGANModel(SRGANModel):
                 # gan loss
                 fake_g_pred, obj_pred = self.net_d(self.output, gen_objs)
 
-            ## Get object prediction scores for trial one architecture:
-            # For now, take the mean of each image's 5 object predictions.
-            obj_pred_avg = torch.stack([torch.mean(obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+            ## Get prediction scores for trial 2 architecture:
+            obj_pred_avg = obj_pred.squeeze(-1).squeeze(-1)
 
             l_g_gan = self.cri_gan(fake_g_pred, True, is_disc=False)
             l_g_gan_objs = self.osm_obj_weight * self.cri_gan(obj_pred_avg, True, is_disc=False)
@@ -213,7 +212,7 @@ class OSMESRGANModel(SRGANModel):
         # real
         real_d_pred, real_obj_pred = self.net_d(gan_gt, gt_objs)
 
-        real_obj_pred_avg = torch.stack([torch.mean(real_obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+        real_obj_pred_avg = real_obj_pred.squeeze(-1).squeeze(-1)
 
         l_d_real_objs = self.osm_obj_weight * self.cri_gan(real_obj_pred_avg, True, is_disc=True)
 
@@ -231,7 +230,7 @@ class OSMESRGANModel(SRGANModel):
         else:
             fake_d_pred, fake_obj_pred = self.net_d(self.output.detach().clone(), gen_objs.detach().clone())  # clone for pt1.9
 
-        fake_obj_pred_avg = torch.stack([torch.mean(fake_obj_pred[i:i+self.n_osm_objs, :,:,:], dim=0) for i in range(self.output.shape[0])])
+        fake_obj_pred_avg = fake_obj_pred.squeeze(-1).squeeze(-1)
 
         l_d_fake_objs = self.osm_obj_weight * self.cri_gan(fake_obj_pred_avg, True, is_disc=True)
 

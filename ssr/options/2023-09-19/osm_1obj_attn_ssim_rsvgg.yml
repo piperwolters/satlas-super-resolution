@@ -1,6 +1,6 @@
 # General Settings
-name: sep18_buildings  # changed object discriminator to just a few convolutional layers
-model_type: OSMESRGANModel
+name: osm_1obj_attn_ssim_rsvgg
+model_type: OSMESRGANModel2
 scale: 4
 num_gpu: auto
 manual_seed: 0
@@ -10,10 +10,14 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
+# Custom data input args that should be applied to both train and val sets
 feed_disc_s2: True
-n_osm_objs: 2
-osm_obj_weight: 0.1
-osm_categories: [building]
+
+# Weight for OSM object loss within GAN loss calculation
+osm_obj_weight: 0.3
+# Min number of OSM features per tile to be used. Currently clipped to this number.
+n_osm_objs: 1
+
 ssim_loss: True
 
 # Dataset and Dataloader Settings
@@ -22,8 +26,8 @@ datasets:
     name: train
     type: OSMDataset
 
-    sentinel2_path: /data/piperw/super-res/ssr-data/train_urban_set/sentinel2
-    naip_path: /data/piperw/super-res/ssr-data/train_urban_set/naip
+    sentinel2_path: /data/piperw/data/urban_set/s2_condensed
+    naip_path: /data/piperw/data/urban_set/naip_128
 
     old_naip_path: /data/piperw/data/old-naip/
 
@@ -47,12 +51,12 @@ datasets:
      name: validation
      type: OSMDataset
 
-     sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
-     naip_path: /data/piperw/super-res/ssr-data/val_set/naip
+     sentinel2_path: /data/piperw/data/held_out_set/s2_condensed
+     naip_path: /data/piperw/data/held_out_set/naip_128
 
      old_naip_path: /data/piperw/data/old-naip/
 
-     #osm_path: /data/piperw/data/urban_set/osm_chips_to_masks.json
+     osm_path: /data/piperw/data/urban_set/osm_chips_to_masks.json
 
      use_shuffle: False
 
@@ -66,22 +70,23 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 64
+  num_feat: 128
   num_block: 23
-  num_grow_ch: 32
+  num_grow_ch: 64
 
 network_d:
-  type: OSMDiscriminator
-  num_in_ch: 30
+  type: OSMAttnDiscriminator 
+  num_in_ch: 30  # real/fake input + old naip image * 3 channels (RGB)
   num_feat: 256
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g: weights/satlas32_rrdbnet_last.pth 
+  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
   param_key_g: params
   strict_load_g: false
+  #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
@@ -136,7 +141,7 @@ train:
     gan_type: vanilla
     real_label_val: 1.0
     fake_label_val: 0.0
-    loss_weight: 1.0 #!!float 1e-1
+    loss_weight: !!float 1e-1
 
   net_d_iters: 1
   net_d_init_iters: 0
