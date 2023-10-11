@@ -143,6 +143,8 @@ class SSRDataset(data.Dataset):
 
     def __getitem__(self, index):
 
+        print(index, self.datapoints[index])
+
         # A while loop and try/excepts to catch a few potential errors and continue if caught.
         counter = 0
         while True:
@@ -185,7 +187,7 @@ class SSRDataset(data.Dataset):
                                 band_im = np.zeros((self.n_s2_images, 32, 32, 3))
                             else:
                                 band_im = np.zeros((self.n_s2_images, 32, 32, 1))
-                        
+
                         s2_images.append(band_im)
             except:
                 counter += 1
@@ -252,7 +254,7 @@ class SSRDataset(data.Dataset):
                         elif shp[-1] == 1:
                             im = np.reshape(s2_images[band], (-1, 32, 32, 1))
                         else:
-                            im = np.reshape(s2_images[band], (-1, 32, 32, 1))
+                            im = np.expand_dims(np.reshape(s2_images[band], (-1, 32, 32)), -1)
 
                         subset_im = np.array([im[x] for x in rand_indices])
                         subset_im = np.transpose(subset_im, (0, 3, 1, 2))
@@ -263,7 +265,9 @@ class SSRDataset(data.Dataset):
                             s2_chunks = torch.cat((s2_chunks, torch.tensor(subset_im)), dim=1)
 
                 img_S2 = s2_chunks.type(torch.FloatTensor)
-                img_S2 = torch.reshape(img_S2, (img_S2.shape[0]*img_S2.shape[1], 32, 32)) 
+
+                if not self.use_3d:
+                    img_S2 = torch.reshape(img_S2, (img_S2.shape[0]*img_S2.shape[1], 32, 32)) 
 
             img_HR = totensor(naip_chip).type(torch.FloatTensor)
 

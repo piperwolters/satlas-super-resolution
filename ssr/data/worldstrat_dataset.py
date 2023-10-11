@@ -126,10 +126,10 @@ class WorldStratDataset(data.Dataset):
                     continue
 
                 # HR image for the current datapoint.
-                if not self.all_bands:
-                    hr_img_path = os.path.join(self.hr_path, tile, tile+'_rgb.png')
-                else:
-                    hr_img_path = os.path.join(self.hr_path, tile, tile+'_ps.tiff')
+                #if not self.all_bands:
+                hr_img_path = os.path.join(self.hr_path, tile, tile+'_rgb.png')
+                #else:
+                #hr_img_path = os.path.join(self.hr_path, tile, tile+'_ps.tiff')
 
                 # Each HR image has 16 corresponding LR images.
                 lrs = []
@@ -145,16 +145,17 @@ class WorldStratDataset(data.Dataset):
     def __getitem__(self, index):
         hr_path, lr_paths = self.datapoints[index]
 
-        if not self.all_bands:
-            hr_im = skimage.io.imread(hr_path)[:, :, 0:3]
-            hr_im = cv2.resize(hr_im, (640, 640)) # NOTE: temporarily downsizing the HR image to match the SR image
-            hr_im = totensor(hr_im)
-        else:
-            hr_raster = gdal.Open(hr_path)
-            hr_im = hr_raster.ReadAsArray()
-            hr_im = torch.tensor(hr_im.astype(np.float32))[0:3, :, :]
+        hr_im = skimage.io.imread(hr_path)[:, :, 0:3]
+        hr_im = cv2.resize(hr_im, (640, 640)) # NOTE: temporarily downsizing the HR image to match the SR image
+        hr_im = totensor(hr_im)
 
-        #img_HR = totensor(hr_im)
+        # NOTE: do we want to run on all bands or on pansharpened? tbd
+        # The following commented out code tries to load pansharpened but was gettin inf psnr when using this as gt.
+        #hr_raster = gdal.Open(hr_path)
+        #hr_im = np.transpose(hr_raster.ReadAsArray()[0:3, :, :], (1,2,0))
+        #hr_im = cv2.resize(hr_im, (640,640)).astype(np.float32)
+        #hr_im = totensor(hr_im)
+
         img_HR = hr_im
 
         # Load each of the LR images with gdal, since they're tifs.
