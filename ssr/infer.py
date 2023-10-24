@@ -115,7 +115,7 @@ if __name__ == "__main__":
         save_dir = os.path.join(save_path, tile)
         save_fn = save_dir + '/' + idx
         os.makedirs(save_dir, exist_ok=True)
-        
+
         im = skimage.io.imread(png)
 
         output = infer(im, n_s2_images, device, model2)

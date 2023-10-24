@@ -9,11 +9,13 @@ import skimage.io
 import numpy as np
 
 from basicsr.archs.rrdbnet_arch import RRDBNet
+from ssr.archs.highresnet_arch import HighResNet
+from ssr.archs.srcnn_arch import SRCNN
 
 totensor = torchvision.transforms.ToTensor()
 
 
-def infer(s2_data, n_s2_images, device, extra_res=None):
+def infer(s2_data, n_s2_images, use_3d, device, extra_res=None):
     # Reshape to be Tx32x32x3.
     s2_chunks = np.reshape(s2_data, (-1, 32, 32, 3))
 
@@ -38,7 +40,10 @@ def infer(s2_data, n_s2_images, device, extra_res=None):
 
     # Convert to torch tensor.
     s2_chunks = [totensor(img) for img in s2_chunks]
-    s2_tensor = torch.cat(s2_chunks).unsqueeze(0).to(device)
+    if use_3d:
+        s2_tensor = torch.stack(s2_chunks).unsqueeze(0).to(device)
+    else:
+        s2_tensor = torch.cat(s2_chunks).unsqueeze(0).to(device)
 
     # Feed input of shape [batch, n_s2_images * channels, 32, 32] through model.
     output = model(s2_tensor)
@@ -61,23 +66,27 @@ if __name__ == "__main__":
 
     device = torch.device('cpu')
     n_s2_images = args.n_s2_images
-    save_path = args.save_path
+    save_path = 'mturk_outputs' #args.save_path
     extra_res_weights = args.extra_res_weights
 
     # Initialize generator model and load in specified weights.
-    model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
     state_dict = torch.load(args.weights_path)
-    model.load_state_dict(state_dict['params_ema'])
+    model_type = 'SRCNN'  # RRDBNet, HighResNet, SRCNN
+    if model_type == 'RRDBNet':
+        use_3d = False
+        model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
+        model.load_state_dict(state_dict['params_ema'])
+    elif model_type == 'HighResNet':
+        use_3d = True
+        model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1)
+        model.load_state_dict(state_dict['params'])
+    elif model_type == 'SRCNN':
+        use_3d = True
+        model = SRCNN(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1)
+        model.load_state_dict(state_dict['params'])
     model.eval()
-
-    # If extra_res is specified, initialize that second model.
-    model2 = None
-    if extra_res_weights is not None:
-        print("Initializing the 4x->16x model...")
-        model2 = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=32, scale=4).to(device) 
-        state_dict = torch.load(extra_res_weights)
-        model2.load_state_dict(state_dict['params_ema'])
-        model2.eval()
 
     txt = open(args.data_txt)
     fps = txt.readlines()
@@ -86,16 +95,14 @@ if __name__ == "__main__":
 
         png = png.replace('\n', '')
 
-        # Want to save the super-resolved imagery in the same filepath structure 
-        # as the Sentinel-2 imagery, but in a different directory specified by args.save_path
-        # for easy comparison.
         file_info = png.split('/')
         chip = file_info[-1][:-4]
         save_dir = os.path.join(save_path, chip)
         os.makedirs(save_dir, exist_ok=True)
 
-        naip_im = skimage.io.imread(png)
-        skimage.io.imsave(save_dir + '/naip.png', naip_im)
+        # Uncomment if you want to save NAIP images
+        #naip_im = skimage.io.imread(png)
+        #skimage.io.imsave(save_dir + '/naip.png', naip_im)
 
         chip = chip.split('_')
         tile = int(chip[0]) // 16, int(chip[1]) // 16
@@ -105,12 +112,11 @@ if __name__ == "__main__":
 
         s2_path = '/data/piperw/data/full_dataset/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
 
-        # NAIP image, target
         s2_im = skimage.io.imread(s2_path)
 
-        output = infer(s2_im, n_s2_images, device, model2)
+        output = infer(s2_im, n_s2_images, use_3d, device, None)
 
         output = output.squeeze().cpu().detach().numpy()
         output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-        skimage.io.imsave(save_dir + '/esrgan_satlas.png', output, check_contrast=False)
+        skimage.io.imsave(save_dir + '/srcnn.png', output, check_contrast=False)
 
