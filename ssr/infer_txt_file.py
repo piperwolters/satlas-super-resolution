@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     device = torch.device('cpu')
     n_s2_images = args.n_s2_images
-    save_path = 'mturk_outputs' #args.save_path
+    save_path = 'mturk_urban_outputs' #args.save_path
     extra_res_weights = args.extra_res_weights
 
     # Initialize generator model and load in specified weights.
@@ -101,8 +101,8 @@ if __name__ == "__main__":
         os.makedirs(save_dir, exist_ok=True)
 
         # Uncomment if you want to save NAIP images
-        #naip_im = skimage.io.imread(png)
-        #skimage.io.imsave(save_dir + '/naip.png', naip_im)
+        naip_im = skimage.io.imread(png)
+        skimage.io.imsave(save_dir + '/naip.png', naip_im)
 
         chip = chip.split('_')
         tile = int(chip[0]) // 16, int(chip[1]) // 16
@@ -110,7 +110,8 @@ if __name__ == "__main__":
         s2_left_corner = tile[0] * 16, tile[1] * 16
         diffs = int(chip[0]) - s2_left_corner[0], int(chip[1]) - s2_left_corner[1]
 
-        s2_path = '/data/piperw/data/full_dataset/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
+        s2_path = '/data/piperw/data/urban_set/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
+        #s2_path = '/data/piperw/data/full_dataset/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
 
         s2_im = skimage.io.imread(s2_path)
 
