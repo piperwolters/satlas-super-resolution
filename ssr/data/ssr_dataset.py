@@ -84,6 +84,11 @@ class SSRDataset(data.Dataset):
 
         self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
 
+        if self.split == 'train':
+            self.naip_chips = random.sample(self.naip_chips, 11000)
+
+        print("Len of naip chips:", len(self.naip_chips))
+
         self.datapoints = []
         for n in self.naip_chips:
 
@@ -142,8 +147,6 @@ class SSRDataset(data.Dataset):
         return CustomWeightedRandomSampler(weights, len(self.datapoints))
 
     def __getitem__(self, index):
-
-        print(index, self.datapoints[index])
 
         # A while loop and try/excepts to catch a few potential errors and continue if caught.
         counter = 0
