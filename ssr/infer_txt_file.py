@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('--extra_res_weights', help="Weights to a trained 4x->16x model. Doesn't currently work with stitch I don't think.")
     args = parser.parse_args()
 
-    device = torch.device('cpu')
+    device = torch.device('cuda')
     n_s2_images = args.n_s2_images
     save_path = 'mturk_urban_outputs' #args.save_path
     extra_res_weights = args.extra_res_weights
@@ -79,12 +79,12 @@ if __name__ == "__main__":
     elif model_type == 'HighResNet':
         use_3d = True
         model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     elif model_type == 'SRCNN':
         use_3d = True
         model = SRCNN(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     model.eval()
 
@@ -120,7 +120,5 @@ if __name__ == "__main__":
         output = output.squeeze().cpu().detach().numpy()
         print("range befreo *255 and uint8:", np.min(output), np.max(output))
         output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-        print("range:", np.min(output), np.max(output))
-        exit()
-        #skimage.io.imsave(save_dir + '/esrgan_satlas.png', output, check_contrast=False)
+        skimage.io.imsave(save_dir + '/esrgan_osm_chkpt50k.png', output, check_contrast=False)
 
