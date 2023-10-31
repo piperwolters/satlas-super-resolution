@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     # Initialize generator model and load in specified weights.
     state_dict = torch.load(args.weights_path)
-    model_type = 'SRCNN'  # RRDBNet, HighResNet, SRCNN
+    model_type = 'RRDBNet'  # RRDBNet, HighResNet, SRCNN
     if model_type == 'RRDBNet':
         use_3d = False
         model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
@@ -118,6 +118,9 @@ if __name__ == "__main__":
         output = infer(s2_im, n_s2_images, use_3d, device, None)
 
         output = output.squeeze().cpu().detach().numpy()
+        print("range befreo *255 and uint8:", np.min(output), np.max(output))
         output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-        skimage.io.imsave(save_dir + '/srcnn.png', output, check_contrast=False)
+        print("range:", np.min(output), np.max(output))
+        exit()
+        #skimage.io.imsave(save_dir + '/esrgan_satlas.png', output, check_contrast=False)
 
