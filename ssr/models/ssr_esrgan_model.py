@@ -89,6 +89,14 @@ class SSRESRGANModel(SRGANModel):
                     l_g_total += l_g_style
                     loss_dict['l_g_style'] = l_g_style
 
+            # Similarity score loss using some large-scale pretrained model
+            if self.eva_sim:
+                print("range of output:", torch.min(self.output), torch.max(self.output))
+                print("range of gt:", torch.min(l1_gt), torch.max(l1_gt))
+                l_eva_sim = self.eva_sim(self.output, l1_gt)
+                loss_dict['l_eva_sim'] = l_eva_sim
+                l_g_total += l_eva_sim
+
             lq_shp = self.lq.shape
             lq_resized = nn.functional.interpolate(self.lq, scale_factor=4)
 
