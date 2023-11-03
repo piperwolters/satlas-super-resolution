@@ -31,7 +31,7 @@ datasets:
     use_hflip: True
     use_rot: False
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 1
 
     n_s2_images: 8
 
