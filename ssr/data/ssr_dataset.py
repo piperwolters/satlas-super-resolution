@@ -163,7 +163,8 @@ class SSRDataset(data.Dataset):
                 naip_path, s2_path = datapoint[0], datapoint[1]
 
             # Load the 512x512 NAIP chip.
-            naip_chip = skimage.io.imread(naip_path)
+            naip_chip = cv2.imread(naip_path)
+            #naip_chip = skimage.io.imread(naip_path)
 
             # Specific if statement for when we're using mapbox images...
             if naip_chip.shape[0] == 512:
@@ -178,7 +179,8 @@ class SSRDataset(data.Dataset):
             # There are a few rare cases where loading the Sentinel-2 image fails, skip if found.
             try:
                 if self.s2_bands == ['tci']:
-                    s2_images = skimage.io.imread(s2_path[0])
+                    s2_images = cv2.imread(s2_path[0])
+                    #s2_images = skimage.io.imread(s2_path[0])
                 else:
                     s2_images = []
                     assert(len(s2_path) == 10)
@@ -276,6 +278,7 @@ class SSRDataset(data.Dataset):
 
             if self.old_naip_path is not None:
                 old_naip_chip = skimage.io.imread(old_naip_path)
+                #old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
 
