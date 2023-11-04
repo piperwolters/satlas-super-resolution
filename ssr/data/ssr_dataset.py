@@ -143,8 +143,6 @@ class SSRDataset(data.Dataset):
 
     def __getitem__(self, index):
 
-        print(index, self.datapoints[index])
-
         # A while loop and try/excepts to catch a few potential errors and continue if caught.
         counter = 0
         while True:
@@ -163,8 +161,8 @@ class SSRDataset(data.Dataset):
             naip_chip = skimage.io.imread(naip_path)
 
             # Specific if statement for when we're using mapbox images...
-            if naip_chip.shape[0] == 512:
-                naip_chip = cv2.resize(naip_chip, (128,128))
+            #if naip_chip.shape[0] == 512:
+            #    naip_chip = cv2.resize(naip_chip, (128,128))
 
             # Check for black pixels (almost certainly invalid) and skip if found.
             if [0, 0, 0] in naip_chip:
@@ -273,7 +271,7 @@ class SSRDataset(data.Dataset):
 
             if self.old_naip_path is not None:
                 old_naip_chip = skimage.io.imread(old_naip_path)
-                old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
+                #old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
 
                 if self.transforms:
