@@ -1,5 +1,5 @@
 # General Settings
-name: allbands_baseline
+name: rcan
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -19,21 +19,19 @@ datasets:
     name: train
     type: SSRDataset
 
-    sentinel2_path: /data/piperw/data/urban_set/s2_allbands
+    sentinel2_path: /data/piperw/data/urban_set/s2_condensed
     naip_path: /data/piperw/data/urban_set/naip_128
 
-    old_naip_path: /data/piperw/data/old-naip/
+    #old_naip_path: /data/piperw/data/old-naip/
 
-    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
+    tile_weights: /data/piperw/data/tile_weights/urban_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    s2_bands: [b01, tci, b05, b06, b07, b08, b09, b10, b11, b12]
-
     use_hflip: True
     use_rot: False
-    num_worker_per_gpu: 8
-    batch_size_per_gpu: 32
+    num_worker_per_gpu: 64
+    batch_size_per_gpu: 128
 
     n_s2_images: 8
 
@@ -44,14 +42,12 @@ datasets:
      name: validation
      type: SSRDataset
 
-     sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
-     naip_path: /data/piperw/data/held_out_set/naip_128
+     sentinel2_path: /data/piperw/data/val_set/s2_condensed
+     naip_path: /data/piperw/data/val_set/naip_128
 
-     old_naip_path: /data/piperw/data/old-naip/
+     #old_naip_path: /data/piperw/data/old-naip/
 
      use_shuffle: False
-
-     s2_bands: [b01, tci, b05, b06, b07, b08, b09, b10, b11, b12]
 
      n_s2_images: 8
 
@@ -60,23 +56,24 @@ datasets:
 
 # Network Structures
 network_g:
-  type: SSR_RRDBNet
-  num_in_ch: 36  # number of Sentinel2 images * 3 channels (RGB)
+  type: RCAN
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 128
-  num_block: 23
-  num_grow_ch: 64
+  num_feat: 64
+  num_group: 10
+  num_block: 16
+  upscale: 4
 
 network_d:
   type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 39  # real/fake input + old naip image * 3 channels (RGB)
-  num_feat: 256
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB)
+  num_feat: 64
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/esrgan_full_set_12images/models/net_g_175000.pth 
+  #pretrain_network_g: weights/larger_satlas32.pth
   param_key_g: params
   strict_load_g: false
   #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth

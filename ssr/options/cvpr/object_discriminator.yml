@@ -1,6 +1,6 @@
 # General Settings
-name: allbands_baseline
-model_type: SSRESRGANModel
+name: object_discriminator
+model_type: OSMESRGANModel2
 scale: 4
 num_gpu: auto
 manual_seed: 0
@@ -13,27 +13,30 @@ gan_gt_usm: False
 # Custom data input args that should be applied to both train and val sets
 feed_disc_s2: True
 
+# Weight for OSM object loss within GAN loss calculation
+osm_obj_weight: 0.3
+# Min number of OSM features per tile to be used. Currently clipped to this number.
+n_osm_objs: 1
+
 # Dataset and Dataloader Settings
 datasets:
   train:
     name: train
-    type: SSRDataset
+    type: OSMDataset
 
-    sentinel2_path: /data/piperw/data/urban_set/s2_allbands
+    sentinel2_path: /data/piperw/data/urban_set/s2_condensed
     naip_path: /data/piperw/data/urban_set/naip_128
 
-    old_naip_path: /data/piperw/data/old-naip/
+    osm_path: /data/piperw/data/urban_set/osm_chips_to_masks.json
 
-    tile_weights: /data/piperw/super-res/ssr-data/train_tile_weights/urban_set_weights.json
+    tile_weights: /data/piperw/data/tile_weights/urban_set_weights.json
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    s2_bands: [b01, tci, b05, b06, b07, b08, b09, b10, b11, b12]
-
     use_hflip: True
     use_rot: False
-    num_worker_per_gpu: 8
-    batch_size_per_gpu: 32
+    num_worker_per_gpu: 64
+    batch_size_per_gpu: 128
 
     n_s2_images: 8
 
@@ -42,16 +45,14 @@ datasets:
 
   val:
      name: validation
-     type: SSRDataset
+     type: OSMDataset
 
-     sentinel2_path: /data/piperw/super-res/ssr-data/val_set/sentinel2
-     naip_path: /data/piperw/data/held_out_set/naip_128
+     sentinel2_path: /data/piperw/data/val_set/s2_condensed
+     naip_path: /data/piperw/data/val_set/naip_128
 
-     old_naip_path: /data/piperw/data/old-naip/
+     osm_path: /data/piperw/data/urban_set/osm_chips_to_masks.json
 
      use_shuffle: False
-
-     s2_bands: [b01, tci, b05, b06, b07, b08, b09, b10, b11, b12]
 
      n_s2_images: 8
 
@@ -61,16 +62,16 @@ datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 36  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 128
+  num_feat: 64
   num_block: 23
-  num_grow_ch: 64
+  num_grow_ch: 32
 
 network_d:
-  type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 39  # real/fake input + old naip image * 3 channels (RGB)
-  num_feat: 256
+  type: OSMAttnDiscriminator 
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB)
+  num_feat: 64
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
