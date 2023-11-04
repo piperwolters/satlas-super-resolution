@@ -84,8 +84,8 @@ class SSRDataset(data.Dataset):
 
         self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
 
-        if self.split == 'train':
-            self.naip_chips = random.sample(self.naip_chips, 11000)
+        if 'train_samples' in opt and self.split == 'train':
+            self.naip_chips = random.sample(self.naip_chips, opt['train_samples'])
 
         print("Len of naip chips:", len(self.naip_chips))
 
