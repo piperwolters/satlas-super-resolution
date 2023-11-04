@@ -101,8 +101,8 @@ if __name__ == "__main__":
         os.makedirs(save_dir, exist_ok=True)
 
         # Uncomment if you want to save NAIP images
-        naip_im = skimage.io.imread(png)
-        skimage.io.imsave(save_dir + '/naip.png', naip_im)
+        #naip_im = skimage.io.imread(png)
+        #skimage.io.imsave(save_dir + '/naip.png', naip_im)
 
         chip = chip.split('_')
         tile = int(chip[0]) // 16, int(chip[1]) // 16
