@@ -1,5 +1,5 @@
 # General Settings
-name: satlas32_finetuned_evaplus
+name: satlas32_finetuned_clip-rn50
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -30,8 +30,8 @@ datasets:
 
     use_hflip: True
     use_rot: False
-    num_worker_per_gpu: 8
-    batch_size_per_gpu: 1
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 16
 
     n_s2_images: 8
 
