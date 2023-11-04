@@ -118,6 +118,7 @@ if __name__ == "__main__":
         output = infer(s2_im, n_s2_images, use_3d, device, None)
 
         output = output.squeeze().cpu().detach().numpy()
+        print("range befreo *255 and uint8:", np.min(output), np.max(output))
         output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
         skimage.io.imsave(save_dir + '/esrgan_osm_chkpt50k.png', output, check_contrast=False)
 
