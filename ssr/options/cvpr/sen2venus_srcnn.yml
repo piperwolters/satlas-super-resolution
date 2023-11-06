@@ -1,0 +1,144 @@
+# General Settings
+name: sen2venus_srcnn
+model_type: WorldStratModel
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# USM the Ground-Truth
+l1_gt_usm: True
+percep_gt_usm: True
+gan_gt_usm: False
+
+# Dataset and Dataloader Settings
+datasets:
+  train:
+    name: train
+    type: Sen2VenusDataset
+
+    data_root: /data/piperw/data/sen2venus/
+
+    use_shuffle: True  # shuffle must be false if using tile_weights
+
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 32
+
+    io_backend:
+      type: disk
+
+  val:
+     name: validation
+     type: Sen2VenusDataset
+
+     data_root: /data/piperw/data/sen2venus/
+
+     use_shuffle: False
+
+     io_backend:
+       type: disk
+
+# Network Structures
+network_g:
+  type: SRCNN
+  in_channels: 3
+  mask_channels: 0  # idk what this
+  hidden_channels: 128
+  out_channels: 3
+  kernel_size: 3
+  residual_layers: 1
+  output_size: 256,256
+  revisits: 1
+  zoom_factor: 2
+  sr_kernel_size: 1
+
+# Load in existing weights to the generator and discriminator
+# Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
+path:
+  #pretrain_network_g: weights/larger_satlas32.pth
+  param_key_g: params
+  strict_load_g: false
+  param_key_d: params
+  strict_load_d: true
+  resume_state: ~
+
+# Training Settings
+train:
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+  optim_d:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [400000]
+    gamma: 0.5
+
+  total_iter: 100000000
+  warmup_iter: -1  # no warm up
+
+  # Losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  # Perceptual Loss (content and style losses)
+  perceptual_opt:
+    type: PerceptualLoss
+    layer_weights:
+      # before relu
+      'conv1_2': 0.1
+      'conv2_2': 0.1
+      'conv3_4': 1
+      'conv4_4': 1
+      'conv5_4': 1
+    vgg_type: vgg19
+    use_input_norm: true
+    perceptual_weight: !!float 1.0
+    style_weight: 0
+    range_norm: false
+    criterion: l1
+  # GAN Loss
+  gan_opt:
+    type: GANLoss
+    gan_type: vanilla
+    real_label_val: 1.0
+    fake_label_val: 0.0
+    loss_weight: !!float 1e-1
+
+  net_d_iters: 1
+  net_d_init_iters: 0
+
+# Validation Settings
+val:
+   val_freq: !!float 5e3
+   save_img: False
+
+   metrics:
+     psnr: # metric name
+       type: calculate_psnr
+       crop_border: 4
+       test_y_channel: false
+     ssim: # metric name
+       type: calculate_ssim
+       crop_border: 4
+       test_y_channel: false
+
+# Logging Settings
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 5e3 
+  use_tb_logger: true
+  wandb:
+    project: multisat
+    resume_id: ~
+
+# Dist Training Settings
+dist_params:
+  backend: nccl
+  port: 29500
