@@ -31,6 +31,8 @@ class WorldStratModel(SRModel):
 
         self.optimizer_g.zero_grad()
         self.output = self.net_g(self.lq).squeeze(1)
+        self.gt = self.gt.squeeze(1)
+        print("shapes:", self.output.shape, self.gt.shape)
 
         # total loss = 0.3*w_mse + 0.4*w_mae + 0.3*w_ssim
         mse = F.mse_loss(self.output, self.gt, reduction="none").mean(dim=(-1, -2, -3))

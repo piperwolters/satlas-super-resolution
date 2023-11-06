@@ -33,26 +33,36 @@ class Sen2VenusDataset(data.Dataset):
         self.split = opt['phase']
         self.data_root = opt['data_root']
 
+        self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
+
         hr_fps = glob.glob(self.data_root + '**/*_05m_b2b3b4b8.pt')
+        
+        # Filter filepaths based on if the split is train or validation.
+        if self.split == 'train':
+            hr_fps = [hr_fp for hr_fp in hr_fps if not ('JAM2018' in hr_fp or 'BENGA' in hr_fp or 'SO2' in hr_fp)]
+        else:
+            hr_fps = [hr_fp for hr_fp in hr_fps if ('JAM2018' in hr_fp or 'BENGA' in hr_fp or 'SO2' in hr_fp)]
+
         lr_fps = [hr.replace('05m', '10m') for hr in hr_fps]
 
         self.datapoints = []
         for i,hr_fp in enumerate(hr_fps):
-
-            # TODO: check for held out folders (pick a few)
-
             load_tensor = torch.load(hr_fp)
             num_patches = load_tensor.shape[0]
             self.datapoints.extend([[hr_fp, lr_fps[i], patch] for patch in range(num_patches)])
 
         self.data_len = len(self.datapoints)
-        print("Loaded ", self.data_len, " data pairs.")
+        print("Loaded ", self.data_len, " data pairs for split ", self.split)
 
     def __getitem__(self, index):
         hr_path, lr_path, patch_num = self.datapoints[index]
 
         hr_tensor = torch.load(hr_path)[patch_num, :3, :, :].float()
         lr_tensor = torch.load(lr_path)[patch_num, :3, :, :].float()
+
+        if self.use_3d:
+            hr_tensor = hr_tensor.unsqueeze(0)
+            lr_tensor = lr_tensor.unsqueeze(0)
 
         img_HR = hr_tensor
         img_LR = lr_tensor

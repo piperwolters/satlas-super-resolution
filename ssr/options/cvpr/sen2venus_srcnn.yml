@@ -19,6 +19,7 @@ datasets:
     data_root: /data/piperw/data/sen2venus/
 
     use_shuffle: True  # shuffle must be false if using tile_weights
+    use_3d: True
 
     num_worker_per_gpu: 8
     batch_size_per_gpu: 32
@@ -33,6 +34,7 @@ datasets:
      data_root: /data/piperw/data/sen2venus/
 
      use_shuffle: False
+     use_3d: True
 
      io_backend:
        type: disk
