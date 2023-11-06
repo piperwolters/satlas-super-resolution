@@ -1,5 +1,5 @@
 # General Settings
-name: sen2venus
+name: sen2venus_esrgan
 model_type: SSRESRGANModel
 scale: 3
 num_gpu: auto
