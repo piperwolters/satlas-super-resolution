@@ -61,7 +61,6 @@ class Sen2VenusDataset(data.Dataset):
         lr_tensor = torch.load(lr_path)[patch_num, :3, :, :].float()
 
         if self.use_3d:
-            hr_tensor = hr_tensor.unsqueeze(0)
             lr_tensor = lr_tensor.unsqueeze(0)
 
         img_HR = hr_tensor
