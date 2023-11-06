@@ -34,12 +34,13 @@ class Sen2VenusDataset(data.Dataset):
         self.data_root = opt['data_root']
 
         hr_fps = glob.glob(self.data_root + '**/*_05m_b2b3b4b8.pt')
-        print("Number of hr patch fps:", len(hr_fps))
         lr_fps = [hr.replace('05m', '10m') for hr in hr_fps]
-        print("Number of lr fps:", len(lr_fps))
 
         self.datapoints = []
         for i,hr_fp in enumerate(hr_fps):
+
+            # TODO: check for held out folders (pick a few)
+
             load_tensor = torch.load(hr_fp)
             num_patches = load_tensor.shape[0]
             self.datapoints.extend([[hr_fp, lr_fps[i], patch] for patch in range(num_patches)])
@@ -48,11 +49,10 @@ class Sen2VenusDataset(data.Dataset):
         print("Loaded ", self.data_len, " data pairs.")
 
     def __getitem__(self, index):
-        hr_path, lr_paths, patch_num = self.datapoints[index]
+        hr_path, lr_path, patch_num = self.datapoints[index]
 
-        hr_tensor = torch.load(hr_path)[patch_num, :, :, :]
-        lr_tensor = torch.load(lr_path)[patch_num, :, :, :]
-        print("shapes of input:", hr_tensor.shape, lr_tensor.shape)
+        hr_tensor = torch.load(hr_path)[patch_num, :3, :, :].float()
+        lr_tensor = torch.load(lr_path)[patch_num, :3, :, :].float()
 
         img_HR = hr_tensor
         img_LR = lr_tensor
