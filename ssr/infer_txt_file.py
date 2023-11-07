@@ -66,15 +66,16 @@ if __name__ == "__main__":
 
     device = torch.device('cuda')
     n_s2_images = args.n_s2_images
-    save_path = 'mturk_urban_outputs' #args.save_path
+    save_path = 'outputs' #args.save_path
     extra_res_weights = args.extra_res_weights
+    data_txt = args.data_txt
 
     # Initialize generator model and load in specified weights.
     state_dict = torch.load(args.weights_path)
     model_type = 'RRDBNet'  # RRDBNet, HighResNet, SRCNN
     if model_type == 'RRDBNet':
         use_3d = False
-        model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
+        model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'HighResNet':
         use_3d = True
@@ -99,6 +100,7 @@ if __name__ == "__main__":
         chip = file_info[-1][:-4]
         save_dir = os.path.join(save_path, chip)
         os.makedirs(save_dir, exist_ok=True)
+        print('saving to ...', save_dir)
 
         # Uncomment if you want to save NAIP images
         #naip_im = skimage.io.imread(png)
@@ -110,7 +112,7 @@ if __name__ == "__main__":
         s2_left_corner = tile[0] * 16, tile[1] * 16
         diffs = int(chip[0]) - s2_left_corner[0], int(chip[1]) - s2_left_corner[1]
 
-        s2_path = '/data/piperw/data/urban_set/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
+        s2_path = '/data/piperw/data/val_set/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
         #s2_path = '/data/piperw/data/full_dataset/s2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
 
         s2_im = skimage.io.imread(s2_path)
@@ -120,5 +122,5 @@ if __name__ == "__main__":
         output = output.squeeze().cpu().detach().numpy()
         print("range befreo *255 and uint8:", np.min(output), np.max(output))
         output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-        skimage.io.imsave(save_dir + '/esrgan_osm_chkpt50k.png', output, check_contrast=False)
+        skimage.io.imsave(save_dir + '/esrgan_1perc.png', output, check_contrast=False)
 
