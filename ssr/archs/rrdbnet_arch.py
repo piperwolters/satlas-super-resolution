@@ -114,12 +114,19 @@ class SSR_RRDBNet(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
     def forward(self, x):
+        """
         if self.scale == 2:
             feat = pixel_unshuffle(x, scale=2)
         elif self.scale == 1:
             feat = pixel_unshuffle(x, scale=4)
         else:
             feat = x
+        """
+        feat = x
+
+        print("scale:", self.scale)
+        print("x:", x.shape)
+        print("feat:", feat.shape)
 
         feat = self.conv_first(feat)
         body_feat = self.conv_body(self.body(feat))
@@ -128,8 +135,9 @@ class SSR_RRDBNet(nn.Module):
         # upsample
         if self.scale in [2, 4, 8, 16]:
             feat = self.lrelu(self.conv_up1(F.interpolate(feat, scale_factor=2, mode='nearest')))
-        if self.scale == 3:
-            feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=3, mode='nearest')))
+        print("feat:", feat.shape)
+        #if self.scale == 3:
+        #    feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=3, mode='nearest')))
         if self.scale in [4, 8, 16]:
             feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=2, mode='nearest')))
 
@@ -140,4 +148,5 @@ class SSR_RRDBNet(nn.Module):
                 feat = self.lrelu(self.conv_up4(F.interpolate(feat, scale_factor=2, mode='nearest')))
 
         out = self.conv_last(self.lrelu(self.conv_hr(feat)))
+        print("out:", out.shape)
         return out
