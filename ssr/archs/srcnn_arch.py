@@ -126,8 +126,10 @@ class SRCNN(nn.Module):
         )
         self.resize = Resize(
             #self.output_size,
-            #(128,128), # naip/s2
-            (640,640), # worldstrat rgb
+            (128,128), # naip/s2
+            #(640,640), # worldstrat rgb
+            #(256,256), # sen2venus
+            #(480,480), # oli2msi
             #(1054, 1054), # worldstrat all bands
             interpolation="bilinear",
             align_corners=False,
