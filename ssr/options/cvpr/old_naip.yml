@@ -31,7 +31,7 @@ datasets:
     use_hflip: True
     use_rot: False
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 64
+    batch_size_per_gpu: 128
 
     n_s2_images: 8
 
@@ -72,10 +72,10 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  pretrain_network_g:  /data/piperw/super-res/satlas-super-resolution/experiments/old_naip/models/net_g_10000.pth
+  #pretrain_network_g:  /data/piperw/super-res/satlas-super-resolution/experiments/old_naip/models/net_g_10000.pth
   param_key_g: params
   strict_load_g: false
-  pretrain_network_d:  /data/piperw/super-res/satlas-super-resolution/experiments/old_naip/models/net_d_10000.pth
+  #pretrain_network_d:  /data/piperw/super-res/satlas-super-resolution/experiments/old_naip/models/net_d_10000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
