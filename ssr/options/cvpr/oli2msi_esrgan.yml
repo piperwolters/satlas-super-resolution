@@ -1,7 +1,7 @@
 # General Settings
 name: oli2msi_esrgan
 model_type: SSRESRGANModel
-scale: 3
+scale: 2
 num_gpu: auto
 manual_seed: 0
 
@@ -21,8 +21,8 @@ datasets:
     use_shuffle: True  # shuffle must be false if using tile_weights
     use_3d: False
 
-    num_worker_per_gpu: 2
-    batch_size_per_gpu: 2
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 24
 
     io_backend:
       type: disk
@@ -47,7 +47,7 @@ network_g:
   num_feat: 64
   num_block: 23
   num_grow_ch: 32
-  scale: 3
+  scale: 2
 
 network_d:
   type: SSR_UNetDiscriminatorSN

@@ -9,6 +9,7 @@ import torchvision
 import skimage.io
 import numpy as np
 import torch.nn as nn
+import torch.nn.functional as F
 from osgeo import gdal
 from PIL import Image
 from torch.utils import data as data
@@ -54,11 +55,13 @@ class OLI2MSIDataset(data.Dataset):
 
         hr_ds = gdal.Open(hr_path)
         hr_arr = np.array(hr_ds.ReadAsArray())
+        hr_arr = np.transpose(cv2.resize(np.transpose(hr_arr, (1, 2, 0)), (160, 160)), (2, 0, 1))
         hr_tensor = torch.tensor(hr_arr).float()
 
         lr_ds = gdal.Open(lr_path)
         lr_arr = np.array(lr_ds.ReadAsArray())
         lr_tensor = torch.tensor(lr_arr).float()
+        lr_tensor = F.interpolate(lr_tensor.unsqueeze(0), (80, 80)).squeeze(0)
 
         if self.use_3d:
             lr_tensor = lr_tensor.unsqueeze(0)
