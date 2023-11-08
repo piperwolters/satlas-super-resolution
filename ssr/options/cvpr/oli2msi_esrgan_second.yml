@@ -21,8 +21,8 @@ datasets:
     use_shuffle: True  # shuffle must be false if using tile_weights
     use_3d: False
 
-    num_worker_per_gpu: 16
-    batch_size_per_gpu: 24
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 12
 
     io_backend:
       type: disk

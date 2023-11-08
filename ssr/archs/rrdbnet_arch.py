@@ -92,10 +92,10 @@ class SSR_RRDBNet(nn.Module):
     def __init__(self, num_in_ch, num_out_ch, scale=4, num_feat=64, num_block=23, num_grow_ch=32):
         super(SSR_RRDBNet, self).__init__()
         self.scale = scale
-        if scale == 2:
-            num_in_ch = num_in_ch * 4
-        elif scale == 1:
-            num_in_ch = num_in_ch * 16
+        #if scale == 2:
+        #    num_in_ch = num_in_ch * 4
+        #elif scale == 1:
+        #    num_in_ch = num_in_ch * 16
         self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
         self.body = make_layer(RRDB, num_block, num_feat=num_feat, num_grow_ch=num_grow_ch)
         self.conv_body = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
@@ -114,22 +114,25 @@ class SSR_RRDBNet(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
     def forward(self, x):
+        """
         if self.scale == 2:
             feat = pixel_unshuffle(x, scale=2)
         elif self.scale == 1:
             feat = pixel_unshuffle(x, scale=4)
         else:
             feat = x
+        """
+        feat = x
 
         feat = self.conv_first(feat)
         body_feat = self.conv_body(self.body(feat))
         feat = feat + body_feat
 
-        # upsample
+        # upsample by at least x2
         if self.scale in [2, 4, 8, 16]:
             feat = self.lrelu(self.conv_up1(F.interpolate(feat, scale_factor=2, mode='nearest')))
-        if self.scale == 3:
-            feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=3, mode='nearest')))
+
+        # upsample by at least x4
         if self.scale in [4, 8, 16]:
             feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=2, mode='nearest')))
 

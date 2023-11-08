@@ -1,7 +1,7 @@
 # General Settings
 name: sen2venus_esrgan
 model_type: SSRESRGANModel
-scale: 3
+scale: 2
 num_gpu: auto
 manual_seed: 0
 
@@ -9,9 +9,6 @@ manual_seed: 0
 l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
-
-# Custom data input args that should be applied to both train and val sets
-feed_disc_s2: False
 
 # Dataset and Dataloader Settings
 datasets:
@@ -23,8 +20,8 @@ datasets:
 
     use_shuffle: True  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 8
-    batch_size_per_gpu: 8
+    num_worker_per_gpu: 1
+    batch_size_per_gpu: 48
 
     io_backend:
       type: disk
@@ -48,7 +45,7 @@ network_g:
   num_feat: 64
   num_block: 23
   num_grow_ch: 32
-  scale: 3
+  scale: 2
 
 network_d:
   type: SSR_UNetDiscriminatorSN 
@@ -59,10 +56,10 @@ network_d:
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: weights/larger_satlas32.pth
-  param_key_g: params
+  #pretrain_network_g: experiments/sen2venus_esrgan_first/models/net_g_55000.pth
+  param_key_g: params_ema
   strict_load_g: false
-  #pretrain_network_d: experiments/esrgan_full_set_12images/models/net_d_175000.pth
+  #pretrain_network_d: experiments/sen2venus_esrgan_first/models/net_d_55000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
