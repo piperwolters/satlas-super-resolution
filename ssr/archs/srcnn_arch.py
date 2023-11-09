@@ -130,6 +130,7 @@ class SRCNN(nn.Module):
             #(640,640), # worldstrat rgb
             #(256,256), # sen2venus
             #(480,480), # oli2msi
+            #(320,320),
             #(1054, 1054), # worldstrat all bands
             interpolation="bilinear",
             align_corners=False,
