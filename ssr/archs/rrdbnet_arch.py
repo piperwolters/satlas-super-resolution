@@ -128,6 +128,10 @@ class SSR_RRDBNet(nn.Module):
         body_feat = self.conv_body(self.body(feat))
         feat = feat + body_feat
 
+        # upsample by x3 
+        if self.scale == 3:
+            feat = self.lrelu(self.conv_up1(F.interpolate(feat, scale_factor=3, mode='nearest')))
+
         # upsample by at least x2
         if self.scale in [2, 4, 8, 16]:
             feat = self.lrelu(self.conv_up1(F.interpolate(feat, scale_factor=2, mode='nearest')))
