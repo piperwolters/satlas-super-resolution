@@ -8,6 +8,7 @@ import argparse
 import torchvision
 import skimage.io
 import numpy as np
+import torch.nn.functional as F
 
 from osgeo import gdal
 from basicsr.archs.rrdbnet_arch import RRDBNet
@@ -101,10 +102,10 @@ if __name__ == "__main__":
 
     # Initialize generator model and load in specified weights.
     state_dict = torch.load(args.weights_path)
-    model_type = 'srcnn'  # srcnn, highresnet, esrgan
+    model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
         use_3d = False
-        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
+        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         use_3d = True
@@ -190,6 +191,9 @@ if __name__ == "__main__":
 
             hr_tensor = torch.load(hr_path)[:, :3, :, :].float().to(device)
             lr_tensor = torch.load(lr_path)[:, :3, :, :].float().to(device)
+
+            hr_tensor = F.interpolate(hr_tensor, (128,128))
+            lr_tensor = F.interpolate(lr_tensor, (64,64))
 
             for patch in range(hr_tensor.shape[0]):
 

@@ -122,6 +122,7 @@ class SSR_RRDBNet(nn.Module):
         else:
             feat = x
         """
+
         feat = x
 
         feat = self.conv_first(feat)
