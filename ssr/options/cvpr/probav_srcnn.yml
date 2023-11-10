@@ -1,6 +1,6 @@
 # General Settings
-name: probav_esrgan
-model_type: SSRESRGANModel
+name: probav_srcnn
+model_type: WorldStratModel
 scale: 4
 num_gpu: auto
 manual_seed: 0
@@ -19,10 +19,11 @@ datasets:
     data_root: /data/piperw/data/PROBA-V/
 
     use_shuffle: True  # shuffle must be false if using tile_weights
+    use_3d: True
 
     n_lr_images: 9
 
-    num_worker_per_gpu: 4
+    num_worker_per_gpu: 8
     batch_size_per_gpu: 16
 
     io_backend:
@@ -33,44 +34,40 @@ datasets:
      type: PROBAVDataset
 
      data_root: /data/piperw/data/PROBA-V/
+     n_lr_images: 9
 
      use_shuffle: False
-
-     n_lr_images: 9
+     use_3d: True
 
      io_backend:
        type: disk
 
 # Network Structures
 network_g:
-  type: SSR_RRDBNet
-  num_in_ch: 27  # number of Sentinel2 images * 3 channels (RGB)
-  num_out_ch: 3
-  num_feat: 64
-  num_block: 23
-  num_grow_ch: 32
-  scale: 4
-
-network_d:
-  type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 3  # real/fake input + old naip image * 3 channels (RGB)
-  num_feat: 64
-  skip_connection: True
+  type: SRCNN
+  in_channels: 3
+  mask_channels: 0  # idk what this
+  hidden_channels: 128
+  out_channels: 3
+  kernel_size: 3
+  residual_layers: 1
+  output_size: 128,128
+  revisits: 9
+  zoom_factor: 4
+  sr_kernel_size: 1
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/sen2venus_esrgan_first/models/net_g_55000.pth
-  param_key_g: params_ema
+  #pretrain_network_g: weights/larger_satlas32.pth
+  param_key_g: params
   strict_load_g: false
-  #pretrain_network_d: experiments/sen2venus_esrgan_first/models/net_d_55000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
 
 # Training Settings
 train:
-  ema_decay: 0.999
   optim_g:
     type: Adam
     lr: !!float 1e-4
@@ -124,7 +121,7 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 2e6
+   val_freq: !!float 10e4
    save_img: False
 
    metrics:
@@ -140,7 +137,7 @@ val:
 # Logging Settings
 logger:
   print_freq: 500
-  save_checkpoint_freq: !!float 2e3 
+  save_checkpoint_freq: !!float 10e3 
   use_tb_logger: true
   wandb:
     project: multisat

@@ -63,13 +63,21 @@ class PROBAVDataset(data.Dataset):
         hr_path, lr_paths  = self.datapoints[index]
 
         hr_im = cv2.imread(hr_path)
-        hr_im = cv2.resize(hr_im, (120,120))  # resize from (384,384) to (128,128) to speed up training
+
+        # Take a random 32,32 chunk; Goal will be to upsample by x2.
+        rand_start_x = random.randint(0, 255)
+        rand_start_y = random.randint(0, 255)
+        hr_im = hr_im[rand_start_x:rand_start_x+128, rand_start_y:rand_start_y+128, :]
+
         hr_tensor = totensor(hr_im)
+
+        lr_start_x = int(rand_start_x // 4)
+        lr_start_y = int(rand_start_y // 4)
 
         lr_ims = []
         for lr_path in lr_paths:
             lr_im = cv2.imread(lr_path)
-            lr_im = cv2.resize(lr_im, (40, 40))  # resize from (128, 128) to (42, 42), which isn't perfect /3, to speed up training
+            lr_im = lr_im[lr_start_x:lr_start_x+32, lr_start_y:lr_start_y+32, :]
             lr_tensor = totensor(lr_im)
             lr_ims.append(lr_tensor)
 
