@@ -8,6 +8,7 @@ import argparse
 import torchvision
 import skimage.io
 import numpy as np
+import torch.nn.functional as F
 
 from osgeo import gdal
 from basicsr.archs.rrdbnet_arch import RRDBNet
@@ -101,10 +102,10 @@ if __name__ == "__main__":
 
     # Initialize generator model and load in specified weights.
     state_dict = torch.load(args.weights_path)
-    model_type = 'srcnn'  # srcnn, highresnet, esrgan
+    model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
         use_3d = False
-        model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
+        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         use_3d = True
@@ -150,7 +151,7 @@ if __name__ == "__main__":
 
             output = output.squeeze().cpu().detach().numpy()
             output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-            skimage.io.imsave(save_dir + '/satlas32_finetuned_clip.png', output, check_contrast=False)
+            skimage.io.imsave(save_dir + '/esrgan.png', output, check_contrast=False)
 
         elif datatype == 'oli2msi':
             save_dir = os.path.join(save_path, str(i))
@@ -191,6 +192,9 @@ if __name__ == "__main__":
             hr_tensor = torch.load(hr_path)[:, :3, :, :].float().to(device)
             lr_tensor = torch.load(lr_path)[:, :3, :, :].float().to(device)
 
+            hr_tensor = F.interpolate(hr_tensor, (128,128))
+            lr_tensor = F.interpolate(lr_tensor, (64,64))
+
             for patch in range(hr_tensor.shape[0]):
 
                 save_dir = os.path.join(save_path, str(sen2venus_counter))
@@ -206,7 +210,7 @@ if __name__ == "__main__":
                 output = model(lr_patch)
 
                 output = output.squeeze().cpu().detach().numpy()
-                output = np.transpose(output/1000*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+                output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
                 print("range of output save:", np.min(output), np.max(output))
                 cv2.imwrite(save_dir + '/' + model_type + '.png', output)
 
