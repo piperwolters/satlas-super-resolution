@@ -68,7 +68,6 @@ if __name__ == "__main__":
 
     device = torch.device('cuda')
     n_s2_images = args.n_s2_images
-    save_path = '/data/piperw/cvpr_outputs/naip-s2/' #args.save_path
     extra_res_weights = args.extra_res_weights
     data_txt = args.data_txt
 
@@ -81,6 +80,19 @@ if __name__ == "__main__":
         datatype = 'sen2venus'
         base_path = '/data/piperw/data/sen2venus/'
         save_path = '/data/piperw/cvpr_outputs/sen2venus/'
+    elif 'worldstrat' in data_txt:
+        datatype == 'worldstrat'
+        base_path = '/data/piperw/worldstrat/dataset/lr_dataset/'
+        save_path = '/data/piperw/cvpr_outputs/worldstrat/'
+    elif 'held_out_set' in data_txt:
+        datatype= 'naip-s2'
+        base_path = '/data/piperw/data/held_out_set/'
+        save_path = '/data/piperw/cvpr_outputs/held_out_set/'
+    elif 'probav' in data_txt:
+        probav_counter = 0
+        datatype = 'probav'
+        base_path = '/data/piperw/data/PROBA-V/train/NIR/val/'
+        save_path = '/data/piperw/cvpr_outputs/probav/'
     else:
         datatype = 'naip-s2'
         base_path = '/data/piperw/data/val_set/'
@@ -89,20 +101,20 @@ if __name__ == "__main__":
 
     # Initialize generator model and load in specified weights.
     state_dict = torch.load(args.weights_path)
-    model_type = 'highresnet'  # srcnn, highresnet, esrgan
+    model_type = 'srcnn'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
         use_3d = False
-        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
+        model = RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=128, num_block=23, num_grow_ch=64, scale=4).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         use_3d = True
         model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=1, zoom_factor=2, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     elif model_type == 'srcnn':
         use_3d = True
         model = SRCNN(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=1, zoom_factor=2, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=9, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     model.eval()
 
@@ -122,11 +134,11 @@ if __name__ == "__main__":
             print('saving to ...', save_dir)
 
             # Uncomment if you want to save NAIP images
-            #naip_im = skimage.io.imread(png)
+            #naip_im = skimage.io.imread(base_path + 'naip_128/' + png)
             #skimage.io.imsave(save_dir + '/naip.png', naip_im)
 
             chip = chip.split('_')
-            tile = int(chip[0]) // 16, int(chip[1]) // 16
+            tile = int(chip[0]) // 16, int(chip[1]) // 16 
             s2_left_corner = tile[0] * 16, tile[1] * 16
             diffs = int(chip[0]) - s2_left_corner[0], int(chip[1]) - s2_left_corner[1]
 
@@ -138,7 +150,7 @@ if __name__ == "__main__":
 
             output = output.squeeze().cpu().detach().numpy()
             output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-            skimage.io.imsave(save_dir + '/srcnn.png', output, check_contrast=False)
+            skimage.io.imsave(save_dir + '/satlas32_finetuned_clip.png', output, check_contrast=False)
 
         elif datatype == 'oli2msi':
             save_dir = os.path.join(save_path, str(i))
@@ -159,6 +171,7 @@ if __name__ == "__main__":
 
             # Uncomment if you want to save high-res image.
             #hr_save = (np.transpose(hr_arr, (1, 2, 0)) * 255).astype(np.uint8)
+            #hr_save = cv2.resize(hr_save, (320,320))
             #cv2.imwrite(save_dir + '/hr.png', hr_save)
 
             output = model(lr_tensor)
@@ -202,3 +215,58 @@ if __name__ == "__main__":
                 #hr_save = (np.transpose(hr_arr / 3000 * 255, (1, 2, 0))).astype(np.uint8)
                 #print("range of hr save:", np.min(hr_save), np.max(hr_save))
                 #cv2.imwrite(save_dir + '/hr.png', hr_save)
+
+        elif datatype == 'probav':
+            hr_path = base_path + png
+
+            lr_paths = []
+            for i in range(n_s2_images):
+                if i < 10:
+                    lr = hr_path.replace('HR', 'LR00' + str(i))
+                else:
+                    lr = hr_path.replace('HR', 'LR0' + str(i))
+                lr_paths.append(lr)
+
+            hr_im = cv2.imread(hr_path)
+            hr_tensor = totensor(hr_im)
+
+            lr_ims = []
+            for lr_path in lr_paths:
+                lr_im = cv2.imread(lr_path)
+                lr_tensor = totensor(lr_im)
+                lr_ims.append(lr_tensor)
+
+            if use_3d:
+                img_LR = torch.stack(lr_ims).unsqueeze(0)
+            else:
+                img_LR = torch.cat(lr_ims).unsqueeze(0)
+            img_HR = hr_tensor
+
+            for i in range(3):
+                for j in range(3):
+                    save_dir = os.path.join(save_path, str(probav_counter))
+                    os.makedirs(save_dir, exist_ok=True)
+                    probav_counter += 1
+
+                    start_x, start_y = i * 32, j * 32
+                    hstart_x, hstart_y = i * 128, j * 128
+                    hr_chunk = img_HR[:, hstart_x:hstart_x+128, hstart_y:hstart_y+128]
+                    lr_chunk = img_LR[:, :, :, start_x:start_x+32, start_y:start_y+32].to(device)
+                    print("saving to:", save_dir + '/' + model_type + '.png')
+
+                    output = model(lr_chunk)
+
+                    output = output.squeeze().cpu().detach().numpy()
+                    output = np.transpose(output*1000, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+                    print("range of output save:", np.min(output), np.max(output))
+                    cv2.imwrite(save_dir + '/' + model_type + '.png', output)
+
+                    hr_save = hr_chunk.squeeze().cpu().detach().numpy()
+                    hr_save = np.transpose(hr_save*1000, (1, 2, 0)).astype(np.uint8)
+                    cv2.imwrite(save_dir + '/hr.png', hr_save)
+
+        elif datatype == 'worldstrat':
+            print("wordlstrat")
+
+        else:
+            print("dataset not supported")
