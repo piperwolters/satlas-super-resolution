@@ -1,5 +1,5 @@
 # General Settings
-name: sen2venus_esrgan
+name: sen2venus_esrgan_nov9
 model_type: SSRESRGANModel
 scale: 2
 num_gpu: auto
@@ -120,7 +120,7 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 25e3
+   val_freq: !!float 5e4
    save_img: False
 
    metrics:
