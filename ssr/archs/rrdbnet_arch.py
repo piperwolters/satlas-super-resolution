@@ -92,6 +92,7 @@ class SSR_RRDBNet(nn.Module):
     def __init__(self, num_in_ch, num_out_ch, scale=4, num_feat=64, num_block=23, num_grow_ch=32):
         super(SSR_RRDBNet, self).__init__()
         self.scale = scale
+
         #if scale == 2:
         #    num_in_ch = num_in_ch * 4
         #elif scale == 1:
@@ -122,6 +123,7 @@ class SSR_RRDBNet(nn.Module):
         else:
             feat = x
         """
+
         feat = x
 
         feat = self.conv_first(feat)
