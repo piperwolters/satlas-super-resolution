@@ -1,5 +1,5 @@
 # General Settings
-name: swinir
+name: 30perc_data
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -22,15 +22,13 @@ datasets:
     sentinel2_path: /data/piperw/data/urban_set/s2_condensed
     naip_path: /data/piperw/data/urban_set/naip_128
 
-    #old_naip_path: /data/piperw/data/old-naip/
-
     tile_weights: /data/piperw/data/tile_weights/urban_set_weights.json
+    
+    train_samples: 360000
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    use_hflip: True
-    use_rot: False
-    num_worker_per_gpu: 8
+    num_worker_per_gpu: 64
     batch_size_per_gpu: 128
 
     n_s2_images: 8
@@ -45,8 +43,6 @@ datasets:
      sentinel2_path: /data/piperw/data/val_set/s2_condensed
      naip_path: /data/piperw/data/val_set/naip_128
 
-     #old_naip_path: /data/piperw/data/old-naip/
-
      use_shuffle: False
 
      n_s2_images: 8
@@ -56,14 +52,12 @@ datasets:
 
 # Network Structures
 network_g:
-  type: SwinIR
-  in_chans: 24  # number of Sentinel2 images * 3 channels (RGB)
-  out_chans: 3
-  window_size: 8
-  num_feats: 64
-  upscale: 4
-  img_size: 32
-  upsampler: pixelshuffle
+  type: SSR_RRDBNet
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
+  num_out_ch: 3
+  num_feat: 64
+  num_block: 23
+  num_grow_ch: 32
 
 network_d:
   type: SSR_UNetDiscriminatorSN 
