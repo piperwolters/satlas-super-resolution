@@ -9,6 +9,7 @@ import torchvision
 import skimage.io
 import numpy as np
 import torch.nn as nn
+import torch.nn.functional as F
 from osgeo import gdal
 from PIL import Image
 from torch.utils import data as data
@@ -59,6 +60,8 @@ class Sen2VenusDataset(data.Dataset):
 
         hr_tensor = torch.load(hr_path)[patch_num, :3, :, :].float()
         lr_tensor = torch.load(lr_path)[patch_num, :3, :, :].float()
+        hr_tensor = F.interpolate(hr_tensor.unsqueeze(0), (128,128)).squeeze(0)
+        lr_tensor = F.interpolate(lr_tensor.unsqueeze(0), (64,64)).squeeze(0)
 
         if self.use_3d:
             lr_tensor = lr_tensor.unsqueeze(0)

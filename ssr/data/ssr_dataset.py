@@ -180,19 +180,16 @@ class SSRDataset(data.Dataset):
             try:
                 if self.s2_bands == ['tci']:
                     s2_images = cv2.imread(s2_path[0])
-                    #s2_images = skimage.io.imread(s2_path[0])
                 else:
                     s2_images = []
-                    assert(len(s2_path) == 10)
                     for i,band in enumerate(s2_path):
                         if os.path.exists(band):
-                            band_im = skimage.io.imread(band)
+                            band_im = cv2.imread(band)
                         else:
                             if 'tci' in band:
                                 band_im = np.zeros((self.n_s2_images, 32, 32, 3))
                             else:
                                 band_im = np.zeros((self.n_s2_images, 32, 32, 1))
-
                         s2_images.append(band_im)
             except:
                 counter += 1
@@ -229,7 +226,8 @@ class SSRDataset(data.Dataset):
             else:
                 # Iterate through n_s2_images for the tci band and consider a tci image with black pixels as "bad".
                 # Extract the arrays for each band of the good images and format final tensor.
-                tci_chunks = np.reshape(s2_images[1], (-1, 32, 32, 3))
+                # NOTE: this only works if tci band is consistently first in the list of s2_images.
+                tci_chunks = np.reshape(s2_images[0], (-1, 32, 32, 3))
                 goods, bads = [], []
                 for i,im in enumerate(tci_chunks):
                     s2_chunk = np.reshape(im, (-1, 32, 32, 3))

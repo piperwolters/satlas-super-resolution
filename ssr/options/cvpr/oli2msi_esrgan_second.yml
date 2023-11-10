@@ -1,7 +1,7 @@
 # General Settings
-name: sen2venus_srcnn
-model_type: WorldStratModel
-scale: 4
+name: oli2msi_esrgan
+model_type: SSRESRGANModel
+scale: 2
 num_gpu: auto
 manual_seed: 0
 
@@ -14,44 +14,46 @@ gan_gt_usm: False
 datasets:
   train:
     name: train
-    type: Sen2VenusDataset
+    type: OLI2MSIDataset
 
-    data_root: /data/piperw/data/sen2venus/
+    data_root: /data/piperw/data/OLI2MSI/
 
     use_shuffle: True  # shuffle must be false if using tile_weights
-    use_3d: True
+    use_3d: False
 
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 32
+    batch_size_per_gpu: 12
 
     io_backend:
       type: disk
 
   val:
      name: validation
-     type: Sen2VenusDataset
+     type: OLI2MSIDataset
 
-     data_root: /data/piperw/data/sen2venus/
+     data_root: /data/piperw/data/OLI2MSI/
 
      use_shuffle: False
-     use_3d: True
+     use_3d: False
 
      io_backend:
        type: disk
 
 # Network Structures
 network_g:
-  type: SRCNN
-  in_channels: 3
-  mask_channels: 0  # idk what this
-  hidden_channels: 128
-  out_channels: 3
-  kernel_size: 3
-  residual_layers: 1
-  output_size: 128,128
-  revisits: 1
-  zoom_factor: 2
-  sr_kernel_size: 1
+  type: SSR_RRDBNet
+  num_in_ch: 3  # number of Sentinel2 images * 3 channels (RGB)
+  num_out_ch: 3
+  num_feat: 64
+  num_block: 23
+  num_grow_ch: 32
+  scale: 2
+
+network_d:
+  type: SSR_UNetDiscriminatorSN
+  num_in_ch: 3  # real/fake input + old naip image * 3 channels (RGB)
+  num_feat: 64
+  skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
@@ -65,6 +67,7 @@ path:
 
 # Training Settings
 train:
+  ema_decay: 0.999
   optim_g:
     type: Adam
     lr: !!float 1e-4

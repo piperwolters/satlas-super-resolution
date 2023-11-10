@@ -57,6 +57,7 @@ network_g:
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
   #pretrain_network_g: weights/larger_satlas32.pth
+  pretrain_network_g: experiments/oli2msi_highresnet_first/models/net_g_455000.pth
   param_key_g: params
   strict_load_g: false
   param_key_d: params
