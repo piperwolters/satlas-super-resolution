@@ -140,8 +140,8 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 25e3
-   save_img: True
+   val_freq: !!float 15e3
+   save_img: False
 
    metrics:
      psnr: # metric name
@@ -156,7 +156,7 @@ val:
 # Logging Settings
 logger:
   print_freq: 1000
-  save_checkpoint_freq: !!float 25e3 
+  save_checkpoint_freq: !!float 15e3 
   use_tb_logger: true
   wandb:
     project: multisat
