@@ -569,7 +569,7 @@ class PixelShuffleBlock(ConvTransposeBlock):
 
     def __init__(self, **kws):
         super().__init__(**kws)
-        assert self.in_channels % self.zoom_factor ** 2 == 0
+        #assert self.in_channels % self.zoom_factor ** 2 == 0
         self.in_channels = self.in_channels // self.zoom_factor ** 2
         self.upsample = nn.Sequential(
             nn.PixelShuffle(self.zoom_factor),
