@@ -11,7 +11,9 @@ import numpy as np
 import torch.nn.functional as F
 
 from osgeo import gdal
-from basicsr.archs.rrdbnet_arch import RRDBNet
+
+#from basicsr.archs.rrdbnet_arch import RRDBNet
+from ssr.archs.rrdbnet_arch import SSR_RRDBNet
 from ssr.archs.highresnet_arch import HighResNet
 from ssr.archs.srcnn_arch import SRCNN
 
@@ -105,12 +107,12 @@ if __name__ == "__main__":
     model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
         use_3d = False
-        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
+        model = SSR_RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         use_3d = True
         model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=9, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     elif model_type == 'srcnn':
         use_3d = True
@@ -151,7 +153,7 @@ if __name__ == "__main__":
 
             output = output.squeeze().cpu().detach().numpy()
             output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-            skimage.io.imsave(save_dir + '/esrgan.png', output, check_contrast=False)
+            skimage.io.imsave(save_dir + '/4S2.png', output, check_contrast=False)
 
         elif datatype == 'oli2msi':
             save_dir = os.path.join(save_path, str(i))
@@ -171,13 +173,13 @@ if __name__ == "__main__":
             hr_arr = np.array(hr_ds.ReadAsArray())
 
             # Uncomment if you want to save high-res image.
-            #hr_save = (np.transpose(hr_arr, (1, 2, 0)) * 255).astype(np.uint8)
-            #hr_save = cv2.resize(hr_save, (320,320))
-            #cv2.imwrite(save_dir + '/hr.png', hr_save)
+            hr_save = (np.transpose(hr_arr, (1, 2, 0)) * 500).astype(np.uint8)
+            hr_save = cv2.resize(hr_save, (320,320))
+            cv2.imwrite(save_dir + '/hr.png', hr_save)
 
             output = model(lr_tensor)
             output = output.squeeze().cpu().detach().numpy()
-            output = np.transpose(output*1000, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+            output = np.transpose(output*500, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
 
             cv2.imwrite(save_dir + '/' + model_type + '.png', output)
 
@@ -255,8 +257,14 @@ if __name__ == "__main__":
                     start_x, start_y = i * 32, j * 32
                     hstart_x, hstart_y = i * 128, j * 128
                     hr_chunk = img_HR[:, hstart_x:hstart_x+128, hstart_y:hstart_y+128]
-                    lr_chunk = img_LR[:, :, :, start_x:start_x+32, start_y:start_y+32].to(device)
+
+                    if use_3d:
+                        lr_chunk = img_LR[:, :, :, start_x:start_x+32, start_y:start_y+32].to(device)
+                    else:
+                        lr_chunk = img_LR[:, :,start_x:start_x+32, start_y:start_y+32].to(device)
+
                     print("saving to:", save_dir + '/' + model_type + '.png')
+                    print(hr_chunk.shape, lr_chunk.shape)
 
                     output = model(lr_chunk)
 

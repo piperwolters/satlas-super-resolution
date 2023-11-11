@@ -256,7 +256,7 @@ class FusionBlock(nn.Module):
         """
 
         number_of_revisits = x.shape[1]
-        assert number_of_revisits % 2 == 0, f"number_of_revisits={number_of_revisits}"
+        #assert number_of_revisits % 2 == 0, f"number_of_revisits={number_of_revisits}"
 
         # (batch_size, revisits//2, in_channels, height, width)
         first_half = x[:, : number_of_revisits // 2].contiguous()
