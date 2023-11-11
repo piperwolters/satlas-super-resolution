@@ -123,8 +123,6 @@ class SSR_RRDBNet(nn.Module):
         else:
             feat = x
         """
-        self.scale = 2
-
         feat = x
 
         feat = self.conv_first(feat)

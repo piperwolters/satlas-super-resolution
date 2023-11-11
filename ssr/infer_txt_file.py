@@ -106,8 +106,9 @@ if __name__ == "__main__":
     state_dict = torch.load(args.weights_path)
     model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
+        esrgan_savename = 'testing.png'
         use_3d = False
-        model = SSR_RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
+        model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         use_3d = True
@@ -151,9 +152,11 @@ if __name__ == "__main__":
 
             output = infer(s2_im, n_s2_images, use_3d, device, None)
 
+            output = torch.clamp(output, 0, 1)
+
             output = output.squeeze().cpu().detach().numpy()
             output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-            skimage.io.imsave(save_dir + '/4S2.png', output, check_contrast=False)
+            skimage.io.imsave(save_dir + '/' + esrgan_savename, output, check_contrast=False)
 
         elif datatype == 'oli2msi':
             save_dir = os.path.join(save_path, str(i))
@@ -196,6 +199,8 @@ if __name__ == "__main__":
 
             hr_tensor = F.interpolate(hr_tensor, (128,128))
             lr_tensor = F.interpolate(lr_tensor, (64,64))
+                
+            lr_tensor = (lr_tensor - torch.min(lr_tensor)) / torch.max(lr_tensor)
 
             for patch in range(hr_tensor.shape[0]):
 
@@ -209,18 +214,19 @@ if __name__ == "__main__":
                 if use_3d:
                     lr_patch = lr_patch.unsqueeze(0)
 
+                print("input range:", torch.min(lr_patch), torch.max(lr_patch))
                 output = model(lr_patch)
 
                 output = output.squeeze().cpu().detach().numpy()
-                output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+                output = np.transpose(output * 255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
                 print("range of output save:", np.min(output), np.max(output))
                 cv2.imwrite(save_dir + '/' + model_type + '.png', output)
 
                 # Uncomment if you want to save high-res images.
-                #hr_arr = hr_patch.detach().cpu().numpy()
-                #hr_save = (np.transpose(hr_arr / 3000 * 255, (1, 2, 0))).astype(np.uint8)
-                #print("range of hr save:", np.min(hr_save), np.max(hr_save))
-                #cv2.imwrite(save_dir + '/hr.png', hr_save)
+                hr_arr = hr_patch.detach().cpu().numpy()
+                hr_save = (np.transpose(hr_arr * 255, (1, 2, 0))).astype(np.uint8)  # / 3000 ?
+                print("range of hr save:", np.min(hr_save), np.max(hr_save))
+                cv2.imwrite(save_dir + '/hr.png', hr_save)
 
         elif datatype == 'probav':
             hr_path = base_path + png
