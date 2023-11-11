@@ -28,8 +28,6 @@ datasets:
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
-    use_hflip: True
-    use_rot: False
     num_worker_per_gpu: 8
     batch_size_per_gpu: 128
 

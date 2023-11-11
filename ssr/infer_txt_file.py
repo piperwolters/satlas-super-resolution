@@ -106,7 +106,7 @@ if __name__ == "__main__":
     state_dict = torch.load(args.weights_path)
     model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
-        esrgan_savename = 'testing.png'
+        esrgan_savename = 'baseline.png'
         use_3d = False
         model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
         model.load_state_dict(state_dict['params_ema'])
@@ -156,6 +156,10 @@ if __name__ == "__main__":
 
             output = output.squeeze().cpu().detach().numpy()
             output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+
+            # NOTE: only for newer trained models; old models were trained using skimage
+            output = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
+
             skimage.io.imsave(save_dir + '/' + esrgan_savename, output, check_contrast=False)
 
         elif datatype == 'oli2msi':
