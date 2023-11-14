@@ -96,6 +96,10 @@ if __name__ == "__main__":
         datatype = 'probav'
         base_path = '/data/piperw/data/PROBA-V/train/NIR/val/'
         save_path = '/data/piperw/cvpr_outputs/probav/'
+    elif 'mus2' in data_txt:
+        data_type = 'mus2'
+        base_path = '/data/piperw/data/'
+        save_path = '/data/piperw/cvpr_outputs/mus2/'
     else:
         datatype = 'naip-s2'
         base_path = '/data/piperw/data/val_set/'
@@ -106,23 +110,25 @@ if __name__ == "__main__":
     if args.weights_path is not None:
         state_dict = torch.load(args.weights_path)
 
-    model_type = 'esrgan'  # srcnn, highresnet, esrgan
+    model_type = 'highresnet'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
-        esrgan_savename = 'baseline.png'
+        esrgan_savename = 'larger2.png'
         use_3d = False
         model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
 
         if args.weights_path is not None:
             model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
+        esrgan_savename = 'highresnet.png'
         use_3d = True
         model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=9, zoom_factor=4, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     elif model_type == 'srcnn':
+        esrgan_savename = 'srcnn.png'
         use_3d = True
         model = SRCNN(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=9, zoom_factor=4, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     model.eval()
 
