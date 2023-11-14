@@ -63,7 +63,7 @@ def infer(s2_data, n_s2_images, use_3d, device, extra_res=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data_txt', type=str, help="Path to a txt file with a list of naip filepaths.")
-    parser.add_argument('-w', '--weights_path', type=str, default="weights/esrgan_orig_6S2.pth", help="Path to the model weights.")
+    parser.add_argument('-w', '--weights_path', type=str, default=None, help="Path to the model weights.")
     parser.add_argument('--n_s2_images', type=int, default=8, help="Number of Sentinel-2 images as input, must correlate to correct model weights.")
     parser.add_argument('--save_path', type=str, default="outputs", help="Directory where generated outputs will be saved.")
     parser.add_argument('--extra_res_weights', help="Weights to a trained 4x->16x model. Doesn't currently work with stitch I don't think.")
@@ -103,13 +103,17 @@ if __name__ == "__main__":
     print("Datatype:", datatype)
 
     # Initialize generator model and load in specified weights.
-    state_dict = torch.load(args.weights_path)
+    if args.weights_path is not None:
+        state_dict = torch.load(args.weights_path)
+
     model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
         esrgan_savename = 'baseline.png'
         use_3d = False
         model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
-        model.load_state_dict(state_dict['params_ema'])
+
+        if args.weights_path is not None:
+            model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         use_3d = True
         model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
@@ -149,6 +153,10 @@ if __name__ == "__main__":
             s2_path = base_path + 's2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
 
             s2_im = skimage.io.imread(s2_path)
+
+            # Uncomment if you want to save S2 images
+            #save_s2 = np.reshape(s2_im, (-1, 32, 32, 3))[1]
+            #skimage.io.imsave(save_dir + '/s2.png', save_s2)
 
             output = infer(s2_im, n_s2_images, use_3d, device, None)
 
