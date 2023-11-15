@@ -54,12 +54,6 @@ class SSRDataset(data.Dataset):
         self.n_s2_images = int(opt['n_s2_images'])
         self.scale = int(opt['scale'])
 
-        # To apply or not apply torch transforms such as crop and flip.
-        self.transforms = opt['transforms'] if 'transforms' in opt else False
-        if self.transforms:
-            self.v_flip = torch.nn.Sequential(torchvision.transforms.RandomVerticalFlip(1))
-            self.h_flip = torch.nn.Sequential(torchvision.transforms.RandomHorizontalFlip(1))
-
         # Flags whether the model being used expects [b, n_images, channels, h, w] or [b, n_images*channels, h, w].
         self.use_3d = opt['use_3d'] if 'use_3d' in opt else False
 
@@ -163,8 +157,7 @@ class SSRDataset(data.Dataset):
                 naip_path, s2_path = datapoint[0], datapoint[1]
 
             # Load the 512x512 NAIP chip.
-            naip_chip = cv2.imread(naip_path)
-            #naip_chip = skimage.io.imread(naip_path)
+            naip_chip = skimage.io.imread(naip_path)
 
             # Specific if statement for when we're using mapbox images...
             if naip_chip.shape[0] == 512:
@@ -179,12 +172,12 @@ class SSRDataset(data.Dataset):
             # There are a few rare cases where loading the Sentinel-2 image fails, skip if found.
             try:
                 if self.s2_bands == ['tci']:
-                    s2_images = cv2.imread(s2_path[0])
+                    s2_images = skimage.io.imread(s2_path[0])
                 else:
                     s2_images = []
                     for i,band in enumerate(s2_path):
                         if os.path.exists(band):
-                            band_im = cv2.imread(band)
+                            band_im = skimage.io.imread(band)
                         else:
                             if 'tci' in band:
                                 band_im = np.zeros((self.n_s2_images, 32, 32, 3))
@@ -267,45 +260,20 @@ class SSRDataset(data.Dataset):
                         else:
                             s2_chunks = torch.cat((s2_chunks, torch.tensor(subset_im)), dim=1)
 
-                img_S2 = s2_chunks.type(torch.FloatTensor)
+                img_S2 = s2_chunks
 
                 if not self.use_3d:
                     img_S2 = torch.reshape(img_S2, (img_S2.shape[0]*img_S2.shape[1], 32, 32)) 
 
-            img_HR = totensor(naip_chip).type(torch.FloatTensor)
+            img_HR = totensor(naip_chip)
 
             if self.old_naip_path is not None:
                 old_naip_chip = skimage.io.imread(old_naip_path)
-                #old_naip_chip = skimage.io.imread(old_naip_path)
                 old_naip_chip = cv2.resize(old_naip_chip, (128,128))  # downsampling to match other NAIP dimensions
                 img_old_HR = totensor(old_naip_chip)
 
-                if self.transforms:
-                    v_flip_prob = random.randint(0,2)
-                    if v_flip_prob == 1:
-                        img_HR = self.v_flip(img_HR)
-                        img_old_HR = self.v_flip(img_old_HR)
-                        img_S2 = self.v_flip(img_S2)
-
-                    h_flip_prob = random.randint(0,2)
-                    if h_flip_prob == 1:
-                        img_HR = self.h_flip(img_HR)
-                        img_old_HR = self.h_flip(img_old_HR)
-                        img_S2 = self.h_flip(img_S2)
-                    
                 return {'gt': img_HR, 'lq': img_S2, 'old_naip': img_old_HR, 'Index': index}
             else:
-                if self.transforms:
-                    v_flip_prob = random.randint(0,2)
-                    if v_flip_prob == 1:
-                        img_HR = self.v_flip(img_HR)
-                        img_S2 = self.v_flip(img_S2)
-
-                    h_flip_prob = random.randint(0,2)
-                    if h_flip_prob == 1:
-                        img_HR = self.h_flip(img_HR)
-                        img_S2 = self.h_flip(img_S2)
-
                 return {'gt': img_HR, 'lq': img_S2, 'Index': index}
 
     def __len__(self):

@@ -63,7 +63,7 @@ def infer(s2_data, n_s2_images, use_3d, device, extra_res=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data_txt', type=str, help="Path to a txt file with a list of naip filepaths.")
-    parser.add_argument('-w', '--weights_path', type=str, default="weights/esrgan_orig_6S2.pth", help="Path to the model weights.")
+    parser.add_argument('-w', '--weights_path', type=str, default=None, help="Path to the model weights.")
     parser.add_argument('--n_s2_images', type=int, default=8, help="Number of Sentinel-2 images as input, must correlate to correct model weights.")
     parser.add_argument('--save_path', type=str, default="outputs", help="Directory where generated outputs will be saved.")
     parser.add_argument('--extra_res_weights', help="Weights to a trained 4x->16x model. Doesn't currently work with stitch I don't think.")
@@ -96,6 +96,10 @@ if __name__ == "__main__":
         datatype = 'probav'
         base_path = '/data/piperw/data/PROBA-V/train/NIR/val/'
         save_path = '/data/piperw/cvpr_outputs/probav/'
+    elif 'mus2' in data_txt:
+        data_type = 'mus2'
+        base_path = '/data/piperw/data/'
+        save_path = '/data/piperw/cvpr_outputs/mus2/'
     else:
         datatype = 'naip-s2'
         base_path = '/data/piperw/data/val_set/'
@@ -103,21 +107,28 @@ if __name__ == "__main__":
     print("Datatype:", datatype)
 
     # Initialize generator model and load in specified weights.
-    state_dict = torch.load(args.weights_path)
+    if args.weights_path is not None:
+        state_dict = torch.load(args.weights_path)
+
     model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
+        esrgan_savename = 'nov14_clipscore.png'
         use_3d = False
-        model = SSR_RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2).to(device)
-        model.load_state_dict(state_dict['params_ema'])
+        model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
+
+        if args.weights_path is not None:
+            model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
+        esrgan_savename = 'highresnet.png'
         use_3d = True
         model = HighResNet(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=9, zoom_factor=4, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     elif model_type == 'srcnn':
+        esrgan_savename = 'srcnn.png'
         use_3d = True
         model = SRCNN(in_channels=3, mask_channels=0, hidden_channels=128, out_channels=3, kernel_size=3,
-                            residual_layers=1, output_size=(128,128), revisits=9, zoom_factor=4, sr_kernel_size=1).to(device)
+                            residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     model.eval()
 
@@ -149,11 +160,21 @@ if __name__ == "__main__":
 
             s2_im = skimage.io.imread(s2_path)
 
+            # Uncomment if you want to save S2 images
+            #save_s2 = np.reshape(s2_im, (-1, 32, 32, 3))[1]
+            #skimage.io.imsave(save_dir + '/s2.png', save_s2)
+
             output = infer(s2_im, n_s2_images, use_3d, device, None)
+
+            output = torch.clamp(output, 0, 1)
 
             output = output.squeeze().cpu().detach().numpy()
             output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
-            skimage.io.imsave(save_dir + '/4S2.png', output, check_contrast=False)
+
+            # NOTE: only for newer trained models; old models were trained using skimage
+            #output = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
+
+            skimage.io.imsave(save_dir + '/' + esrgan_savename, output, check_contrast=False)
 
         elif datatype == 'oli2msi':
             save_dir = os.path.join(save_path, str(i))
@@ -196,6 +217,8 @@ if __name__ == "__main__":
 
             hr_tensor = F.interpolate(hr_tensor, (128,128))
             lr_tensor = F.interpolate(lr_tensor, (64,64))
+                
+            lr_tensor = (lr_tensor - torch.min(lr_tensor)) / torch.max(lr_tensor)
 
             for patch in range(hr_tensor.shape[0]):
 
@@ -209,18 +232,19 @@ if __name__ == "__main__":
                 if use_3d:
                     lr_patch = lr_patch.unsqueeze(0)
 
+                print("input range:", torch.min(lr_patch), torch.max(lr_patch))
                 output = model(lr_patch)
 
                 output = output.squeeze().cpu().detach().numpy()
-                output = np.transpose(output*255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
+                output = np.transpose(output * 255, (1, 2, 0)).astype(np.uint8)  # transpose to [h, w, 3] to save as image
                 print("range of output save:", np.min(output), np.max(output))
                 cv2.imwrite(save_dir + '/' + model_type + '.png', output)
 
                 # Uncomment if you want to save high-res images.
-                #hr_arr = hr_patch.detach().cpu().numpy()
-                #hr_save = (np.transpose(hr_arr / 3000 * 255, (1, 2, 0))).astype(np.uint8)
-                #print("range of hr save:", np.min(hr_save), np.max(hr_save))
-                #cv2.imwrite(save_dir + '/hr.png', hr_save)
+                hr_arr = hr_patch.detach().cpu().numpy()
+                hr_save = (np.transpose(hr_arr * 255, (1, 2, 0))).astype(np.uint8)  # / 3000 ?
+                print("range of hr save:", np.min(hr_save), np.max(hr_save))
+                cv2.imwrite(save_dir + '/hr.png', hr_save)
 
         elif datatype == 'probav':
             hr_path = base_path + png
