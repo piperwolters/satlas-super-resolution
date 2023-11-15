@@ -1,7 +1,7 @@
 # General Settings
-name: sen2venus_esrgan_norm
+name: nov14_scratch
 model_type: SSRESRGANModel
-scale: 2
+scale: 4
 num_gpu: auto
 manual_seed: 0
 
@@ -10,29 +10,40 @@ l1_gt_usm: True
 percep_gt_usm: True
 gan_gt_usm: False
 
+# Custom data input args that should be applied to both train and val sets
+feed_disc_s2: True
+
 # Dataset and Dataloader Settings
 datasets:
   train:
     name: train
-    type: Sen2VenusDataset
+    type: SSRDataset
 
-    data_root: /data/piperw/data/sen2venus/
+    sentinel2_path: /data/piperw/data/urban_set/s2_condensed
+    naip_path: /data/piperw/data/urban_set/naip_128
 
-    use_shuffle: True  # shuffle must be false if using tile_weights
+    tile_weights: /data/piperw/data/tile_weights/urban_set_weights.json
 
-    num_worker_per_gpu: 8
-    batch_size_per_gpu: 32
+    use_shuffle: False  # shuffle must be false if using tile_weights
+
+    num_worker_per_gpu: 16
+    batch_size_per_gpu: 16
+
+    n_s2_images: 8
 
     io_backend:
       type: disk
 
   val:
      name: validation
-     type: Sen2VenusDataset
+     type: SSRDataset
 
-     data_root: /data/piperw/data/sen2venus/
+     sentinel2_path: /data/piperw/data/held_out_set/s2_condensed
+     naip_path: /data/piperw/data/held_out_set/naip_128
 
      use_shuffle: False
+
+     n_s2_images: 8
 
      io_backend:
        type: disk
@@ -40,26 +51,26 @@ datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 3  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 24  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
   num_feat: 64
   num_block: 23
   num_grow_ch: 32
-  scale: 2
 
 network_d:
   type: SSR_UNetDiscriminatorSN 
-  num_in_ch: 3  # real/fake input + old naip image * 3 channels (RGB)
+  num_in_ch: 27  # real/fake input + old naip image * 3 channels (RGB)
   num_feat: 64
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
 # Uncomment pretrain_network_g and pretrain_network_d and add paths to your weights
 path:
-  #pretrain_network_g: experiments/sen2venus_esrgan_first/models/net_g_55000.pth
-  param_key_g: params_ema
+  #pretrain_network_g: weights/larger_satlas32.pth
+  #pretrain_network_g: experiments/cvpr/baseline/models/net_g_190000.pth
+  param_key_g: params
   strict_load_g: false
-  #pretrain_network_d: experiments/sen2venus_esrgan_first/models/net_d_55000.pth
+  #pretrain_network_d: experiments/cvpr/baseline/models/net_d_190000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
@@ -114,14 +125,17 @@ train:
     real_label_val: 1.0
     fake_label_val: 0.0
     loss_weight: !!float 1e-1
+  # Eva-Plus similarity loss
+  eva_score_opt:
+    type: EvaSimLoss
 
   net_d_iters: 1
   net_d_init_iters: 0
 
 # Validation Settings
 val:
-   val_freq: !!float 5e4
-   save_img: False
+   val_freq: !!float 5e5
+   save_img: True
 
    metrics:
      psnr: # metric name
@@ -136,7 +150,7 @@ val:
 # Logging Settings
 logger:
   print_freq: 1000
-  save_checkpoint_freq: !!float 1e4 
+  save_checkpoint_freq: !!float 5e3 
   use_tb_logger: true
   wandb:
     project: multisat

@@ -107,10 +107,10 @@ if __name__ == "__main__":
     print("Datatype:", datatype)
 
     # Initialize generator model and load in specified weights.
-    model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if args.weights_path is not None:
         state_dict = torch.load(args.weights_path)
 
+    model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
         esrgan_savename = 'finetune_clip_baseline.png'
         use_3d = False
