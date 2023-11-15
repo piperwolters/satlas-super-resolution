@@ -1,5 +1,5 @@
 # General Settings
-name: sen2venus_esrgan_nov9
+name: sen2venus_esrgan_norm
 model_type: SSRESRGANModel
 scale: 2
 num_gpu: auto
@@ -20,7 +20,7 @@ datasets:
 
     use_shuffle: True  # shuffle must be false if using tile_weights
 
-    num_worker_per_gpu: 2
+    num_worker_per_gpu: 8
     batch_size_per_gpu: 32
 
     io_backend:
@@ -136,7 +136,7 @@ val:
 # Logging Settings
 logger:
   print_freq: 1000
-  save_checkpoint_freq: !!float 25e3 
+  save_checkpoint_freq: !!float 1e4 
   use_tb_logger: true
   wandb:
     project: multisat

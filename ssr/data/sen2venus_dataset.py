@@ -63,6 +63,8 @@ class Sen2VenusDataset(data.Dataset):
         hr_tensor = F.interpolate(hr_tensor.unsqueeze(0), (128,128)).squeeze(0)
         lr_tensor = F.interpolate(lr_tensor.unsqueeze(0), (64,64)).squeeze(0)
 
+        lr_tensor = (lr_tensor - torch.min(lr_tensor)) / torch.max(lr_tensor)
+
         if self.use_3d:
             lr_tensor = lr_tensor.unsqueeze(0)
 
