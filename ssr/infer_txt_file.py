@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
-        esrgan_savename = 'finetune_clip_scratch_110k.png'
+        esrgan_savename = 'finetune_clip_baseline.png'
         use_3d = False
         model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
 
