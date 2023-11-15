@@ -108,11 +108,11 @@ if __name__ == "__main__":
 
     # Initialize generator model and load in specified weights.
     state_dict = torch.load(args.weights_path)
-    model_type = 'highresnet'  # srcnn, highresnet, esrgan
+    model_type = 'esrgan'  # srcnn, highresnet, esrgan
     if model_type == 'esrgan':
-        esrgan_savename = 'larger2.png'
+        esrgan_savename = 'nodisc.png'
         use_3d = False
-        model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=256, num_block=30, num_grow_ch=128, scale=4).to(device)
+        model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
         model.load_state_dict(state_dict['params_ema'])
     elif model_type == 'highresnet':
         esrgan_savename = 'highresnet.png'
