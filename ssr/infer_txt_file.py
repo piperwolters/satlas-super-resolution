@@ -22,12 +22,15 @@ totensor = torchvision.transforms.ToTensor()
 
 def infer(s2_data, n_s2_images, use_3d, device, extra_res=None):
     # Reshape to be Tx32x32x3.
-    s2_chunks = np.reshape(s2_data, (-1, 32, 32, 3))
+    num_ch = s2_data.shape[-1]
+    s2_chunks = np.reshape(s2_data, (-1, 32, 32, num_ch))
 
     # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
     # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
     goods, bads = [], []
     for i,ts in enumerate(s2_chunks):
+        # Only consider the RGB bands which should be first three.
+        ts = ts[:, :, 0:3]
         if [0, 0, 0] in ts:
             bads.append(i)
         else:
@@ -67,6 +70,9 @@ if __name__ == "__main__":
     parser.add_argument('--n_s2_images', type=int, default=8, help="Number of Sentinel-2 images as input, must correlate to correct model weights.")
     parser.add_argument('--save_path', type=str, default="outputs", help="Directory where generated outputs will be saved.")
     parser.add_argument('--extra_res_weights', help="Weights to a trained 4x->16x model. Doesn't currently work with stitch I don't think.")
+    parser.add_argument('--num_in_ch', type=int, default=24)
+    parser.add_argument('--save_name', type=str, default=None)
+    parser.add_argument('--bands', type=str, default='tci')
     args = parser.parse_args()
 
     device = torch.device('cuda')
@@ -114,7 +120,7 @@ if __name__ == "__main__":
     if model_type == 'esrgan':
         esrgan_savename = 'finetune_clip_baseline.png'
         use_3d = False
-        model = SSR_RRDBNet(num_in_ch=24, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
+        model = SSR_RRDBNet(num_in_ch=args.num_in_ch, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4).to(device)
 
         if args.weights_path is not None:
             model.load_state_dict(state_dict['params_ema'])
@@ -131,6 +137,9 @@ if __name__ == "__main__":
                             residual_layers=1, output_size=(128,128), revisits=8, zoom_factor=4, sr_kernel_size=1).to(device)
         model.load_state_dict(state_dict['params'])
     model.eval()
+
+    if args.save_name:
+        esrgan_savename = args.save_name
 
     txt = open(args.data_txt)
     fps = txt.readlines()
@@ -152,13 +161,23 @@ if __name__ == "__main__":
             #skimage.io.imsave(save_dir + '/naip.png', naip_im)
 
             chip = chip.split('_')
-            tile = int(chip[0]) // 16, int(chip[1]) // 16 
+            tile = int(chip[0]) // 16, int(chip[1]) // 16
             s2_left_corner = tile[0] * 16, tile[1] * 16
             diffs = int(chip[0]) - s2_left_corner[0], int(chip[1]) - s2_left_corner[1]
 
-            s2_path = base_path + 's2_condensed/' + str(tile[0])+'_'+str(tile[1]) + '/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
+            s2_path = base_path + 's2_allbands/' + str(tile[0])+'_'+str(tile[1]) + '/CHANNEL/' + str(diffs[1])+'_'+str(diffs[0]) + '.png'
 
-            s2_im = skimage.io.imread(s2_path)
+            s2_band_images = []
+            for band in args.bands.split(','):
+                fname = s2_path.replace('CHANNEL', band)
+                if not os.path.exists(fname):
+                    s2_band_images.append(np.zeros((s2_band_images[0].shape[0], 32, 1), dtype=np.uint8))
+                    continue
+                cur_im = skimage.io.imread(fname)
+                if len(cur_im.shape) == 2:
+                    cur_im = cur_im[:, :, None]
+                s2_band_images.append(cur_im)
+            s2_im = np.concatenate(s2_band_images, axis=2)
 
             # Uncomment if you want to save S2 images
             #save_s2 = np.reshape(s2_im, (-1, 32, 32, 3))[1]
@@ -217,7 +236,7 @@ if __name__ == "__main__":
 
             hr_tensor = F.interpolate(hr_tensor, (128,128))
             lr_tensor = F.interpolate(lr_tensor, (64,64))
-                
+
             lr_tensor = (lr_tensor - torch.min(lr_tensor)) / torch.max(lr_tensor)
 
             for patch in range(hr_tensor.shape[0]):

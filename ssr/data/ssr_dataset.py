@@ -178,11 +178,17 @@ class SSRDataset(data.Dataset):
                     for i,band in enumerate(s2_path):
                         if os.path.exists(band):
                             band_im = skimage.io.imread(band)
+
+                            if len(band_im.shape) == 2:
+                                band_im = band_im.reshape(-1, 32, 32, 1)
+                            else:
+                                assert len(band_im.shape) == 3 and band_im.shape[2] == 3
+                                band_im = band_im.reshape(-1, 32, 32, 3)
                         else:
                             if 'tci' in band:
-                                band_im = np.zeros((self.n_s2_images, 32, 32, 3))
+                                band_im = np.zeros((self.n_s2_images, 32, 32, 3), dtype=np.uint8)
                             else:
-                                band_im = np.zeros((self.n_s2_images, 32, 32, 1))
+                                band_im = np.zeros((s2_images[0].shape[0], 32, 32, 1), dtype=np.uint8)
                         s2_images.append(band_im)
             except:
                 counter += 1
@@ -220,7 +226,7 @@ class SSRDataset(data.Dataset):
                 # Iterate through n_s2_images for the tci band and consider a tci image with black pixels as "bad".
                 # Extract the arrays for each band of the good images and format final tensor.
                 # NOTE: this only works if tci band is consistently first in the list of s2_images.
-                tci_chunks = np.reshape(s2_images[0], (-1, 32, 32, 3))
+                tci_chunks = s2_images[0]
                 goods, bads = [], []
                 for i,im in enumerate(tci_chunks):
                     s2_chunk = np.reshape(im, (-1, 32, 32, 3))
@@ -236,34 +242,22 @@ class SSRDataset(data.Dataset):
                 else:
                     need = self.n_s2_images - len(goods)
                     if len(bads) < need:
-                        rand_indices = goods + goods[:need]
+                        rand_indices = goods + [random.choice(goods) for _ in range(need)]
                     else:
                         rand_indices = goods + random.sample(bads, need)
 
-                s2_chunks = []
-                for i in rand_indices:
-                    # For each band, we want to extract the ones relevant to the random S2 images chosen.
-                    for band in range(len(self.s2_bands)):
-                        shp = s2_images[band].shape
-                        if shp[-1] == 3:
-                            im = np.reshape(s2_images[band], (-1, 32, 32, 3))
-                        elif shp[-1] == 1:
-                            im = np.reshape(s2_images[band], (-1, 32, 32, 1))
-                        else:
-                            im = np.expand_dims(np.reshape(s2_images[band], (-1, 32, 32)), -1)
+                s2_bands = []
+                # For each band, we want to extract the ones relevant to the random S2 images chosen.
+                for band in range(len(self.s2_bands)):
+                    im = s2_images[band]
+                    subset_im = [totensor(im[x]) for x in rand_indices]
+                    subset_im = torch.stack(subset_im, axis=0)
+                    s2_bands.append(subset_im)
 
-                        subset_im = np.array([im[x] for x in rand_indices])
-                        subset_im = np.transpose(subset_im, (0, 3, 1, 2))
-
-                        if band == 0:
-                            s2_chunks = torch.tensor(subset_im)
-                        else:
-                            s2_chunks = torch.cat((s2_chunks, torch.tensor(subset_im)), dim=1)
-
-                img_S2 = s2_chunks
+                img_S2 = torch.cat(s2_bands, dim=1)
 
                 if not self.use_3d:
-                    img_S2 = torch.reshape(img_S2, (img_S2.shape[0]*img_S2.shape[1], 32, 32)) 
+                    img_S2 = torch.reshape(img_S2, (img_S2.shape[0]*img_S2.shape[1], 32, 32))
 
             img_HR = totensor(naip_chip)
 

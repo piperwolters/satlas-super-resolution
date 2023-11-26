@@ -19,21 +19,21 @@ datasets:
     name: train
     type: SSRDataset
 
-    sentinel2_path: /data/piperw/data/urban_set/s2_condensed
+    sentinel2_path: /data/piperw/data/urban_set/s2_allbands
     naip_path: /data/piperw/data/urban_set/naip_128
 
     #old_naip_path: /data/piperw/data/old-naip/
 
     tile_weights: /data/piperw/data/tile_weights/urban_set_weights.json
 
-    s2_bands: [b01, tci, b05, b06, b07, b08, b09, b10, b11, b12]
+    s2_bands: [tci, b01, b05, b06, b07, b08, b09, b10, b11, b12]
 
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     use_hflip: True
     use_rot: False
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 128
+    batch_size_per_gpu: 32
 
     n_s2_images: 8
 
@@ -44,12 +44,12 @@ datasets:
      name: validation
      type: SSRDataset
 
-     sentinel2_path: /data/piperw/data/val_set/s2_condensed
+     sentinel2_path: /data/piperw/data/val_set/s2_allbands
      naip_path: /data/piperw/data/val_set/naip_128
 
      #old_naip_path: /data/piperw/data/old-naip/
 
-     s2_bands: [b01, tci, b05, b06, b07, b08, b09, b10, b11, b12]
+     s2_bands: [tci, b01, b05, b06, b07, b08, b09, b10, b11, b12]
 
      use_shuffle: False
 
@@ -68,7 +68,7 @@ network_g:
   num_grow_ch: 32
 
 network_d:
-  type: SSR_UNetDiscriminatorSN 
+  type: SSR_UNetDiscriminatorSN
   num_in_ch: 99  # real/fake input + old naip image * 3 channels (RGB)
   num_feat: 64
   skip_connection: True
@@ -156,7 +156,7 @@ val:
 # Logging Settings
 logger:
   print_freq: 1000
-  save_checkpoint_freq: !!float 50e3 
+  save_checkpoint_freq: !!float 50e3
   use_tb_logger: true
   wandb:
     project: multisat
