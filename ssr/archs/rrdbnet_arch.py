@@ -113,31 +113,41 @@ class SSR_RRDBNet(nn.Module):
 
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
+        # NOTE: specific code for temporal max pooling model
+        self.initial_layers = torch.nn.Sequential(
+            torch.nn.Conv2d(3, num_feat, kernel_size=3, padding='same'),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(num_feat, num_feat, kernel_size=3, padding='same'),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(num_feat, num_feat, kernel_size=1, padding='same'),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(num_feat, num_feat, kernel_size=1, padding='same'),
+            torch.nn.ReLU(inplace=True),
+        )
+        self.num_feat = num_feat
+
     def forward(self, x):
-        if self.scale == 2:
-            feat = pixel_unshuffle(x, scale=2)
-        elif self.scale == 1:
-            feat = pixel_unshuffle(x, scale=4)
-        else:
-            feat = x
-        feat = self.conv_first(feat)
+        # NOTE: following code has been modified to temporally max pool across features.
+        feat = x
+        n_b, n_c, n_h, n_w = feat.shape
+        n_len = n_c//3
+        feat = feat.reshape(n_b*n_len, 3, n_h, n_w)
+        feat = self.initial_layers(feat)
+        feat = feat.reshape(n_b, n_len, self.num_feat, n_h, n_w)
+        feat = feat.amax(dim=1)
+
+        #feat = self.conv_first(feat)
         body_feat = self.conv_body(self.body(feat))
         feat = feat + body_feat
-
-        # upsample; allow for various scale factors
-        if self.scale in [2, 4, 8, 16]:
-            feat = self.lrelu(self.conv_up1(F.interpolate(feat, scale_factor=2, mode='nearest')))
-
-        if self.scale == 3:
-            feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=3, mode='nearest')))
+        # upsample
+        feat = self.lrelu(self.conv_up1(F.interpolate(feat, scale_factor=2, mode='nearest')))
+        feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=2, mode='nearest')))
 
         # Additional upsampling if doing x8 or x16.
-        if self.scale in [4, 8, 16]:
-            feat = self.lrelu(self.conv_up2(F.interpolate(feat, scale_factor=2, mode='nearest')))
-            if self.scale == 8 or self.scale == 16:
-                feat = self.lrelu(self.conv_up3(F.interpolate(feat, scale_factor=2, mode='nearest')))
-                if self.scale == 16:
-                    feat = self.lrelu(self.conv_up4(F.interpolate(feat, scale_factor=2, mode='nearest')))
+        if self.scale == 8 or self.scale == 16:
+            feat = self.lrelu(self.conv_up3(F.interpolate(feat, scale_factor=2, mode='nearest')))
+            if self.scale == 16:
+                feat = self.lrelu(self.conv_up4(F.interpolate(feat, scale_factor=2, mode='nearest')))
 
         out = self.conv_last(self.lrelu(self.conv_hr(feat)))
         return out
