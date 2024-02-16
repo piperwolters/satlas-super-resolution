@@ -110,7 +110,10 @@ class S2NAIPDataset(data.Dataset):
 
             # If old_hr_path is specified, grab an old high-res image (NAIP) for the current datapoint.
             if self.old_naip_path is not None:
-                old_chip = old_naip_chips[chip][0]
+                if not chip in old_naip_chips:
+                    old_chip = None
+                else:
+                    old_chip = old_naip_chips[chip][0]
 
             # If using OSM Object ESRGAN, filter dataset to only include images containing OpenStreetMap objects.
             if self.osm_chips_to_masks is not None and train:
@@ -239,8 +242,11 @@ class S2NAIPDataset(data.Dataset):
                 img_S2 = torch.reshape(img_S2, (-1, 32, 32))
 
             if self.old_naip_path is not None:
-                old_naip_chip = torchvision.io.read_image(old_naip_path)
-                img_old_HR = old_naip_chip
+                if old_naip_path is None:
+                    img_old_HR = torch.zeros_like(img_HR)
+                else:
+                    old_naip_chip = torchvision.io.read_image(old_naip_path)
+                    img_old_HR = old_naip_chip
                 return {'hr': img_HR, 'lr': img_S2, 'old_hr': img_old_HR, 'Index': index, 'Phase': self.split, 'Chip': zoom17_tile}
 
             return {'hr': img_HR, 'lr': img_S2, 'Index': index, 'Phase': self.split, 'Chip': zoom17_tile}
