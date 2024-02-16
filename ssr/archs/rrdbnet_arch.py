@@ -96,7 +96,7 @@ class SSR_RRDBNet(nn.Module):
             num_in_ch = num_in_ch * 4
         elif scale == 1:
             num_in_ch = num_in_ch * 16
-        self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
+        #self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
         self.body = make_layer(RRDB, num_block, num_feat=num_feat, num_grow_ch=num_grow_ch)
         self.conv_body = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
         # upsample
