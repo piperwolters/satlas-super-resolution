@@ -1,5 +1,5 @@
 # General Settings
-name: temporal_max_pool_naip+mapbox
+name: 2024-02-19_temporal_max_pool_naip+mapbox
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -80,14 +80,14 @@ network_g:
   type: SSR_RRDBNet
   num_in_ch: 3  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
-  num_feat: 128
+  num_feat: 64
   num_block: 23
-  num_grow_ch: 64
+  num_grow_ch: 32
 
 network_d:
   type: SSR_UNetDiscriminatorSN
   num_in_ch: 27  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
-  num_feat: 256
+  num_feat: 64
   skip_connection: True
 
 # Load in existing weights to the generator and discriminator
@@ -101,7 +101,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  #experiments_root: /results/experiments/
+  experiments_root: /results/experiments/
 
 # Training Settings
 train:
