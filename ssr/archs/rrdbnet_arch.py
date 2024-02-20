@@ -96,7 +96,7 @@ class SSR_RRDBNet(nn.Module):
             num_in_ch = num_in_ch * 4
         elif scale == 1:
             num_in_ch = num_in_ch * 16
-        self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
+        #self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
         self.body = make_layer(RRDB, num_block, num_feat=num_feat, num_grow_ch=num_grow_ch)
         self.conv_body = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
         # upsample
@@ -113,14 +113,30 @@ class SSR_RRDBNet(nn.Module):
 
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
+        # NOTE: specific code for temporal max pooling model
+        self.initial_layers = torch.nn.Sequential(
+            torch.nn.Conv2d(3, num_feat, kernel_size=3, padding='same'),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(num_feat, num_feat, kernel_size=3, padding='same'),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(num_feat, num_feat, kernel_size=1, padding='same'),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(num_feat, num_feat, kernel_size=1, padding='same'),
+            torch.nn.ReLU(inplace=True),
+        )
+        self.num_feat = num_feat
+
     def forward(self, x):
-        if self.scale == 2:
-            feat = pixel_unshuffle(x, scale=2)
-        elif self.scale == 1:
-            feat = pixel_unshuffle(x, scale=4)
-        else:
-            feat = x
-        feat = self.conv_first(feat)
+        # NOTE: following code has been modified to temporally max pool across features.
+        feat = x
+        n_b, n_c, n_h, n_w = feat.shape
+        n_len = n_c//3
+        feat = feat.reshape(n_b*n_len, 3, n_h, n_w)
+        feat = self.initial_layers(feat)
+        feat = feat.reshape(n_b, n_len, self.num_feat, n_h, n_w)
+        feat = feat.amax(dim=1)
+
+        #feat = self.conv_first(feat)
         body_feat = self.conv_body(self.body(feat))
         feat = feat + body_feat
         # upsample
