@@ -97,6 +97,11 @@ class SSRESRGANModel(SRGANModel):
         else:
             self.clip_sim = None
 
+        if train_opt.get('segment_opt'):
+            self.segment_sim = build_loss(train_opt['segment_opt']).to(self.devicce)
+        else:
+            self.segment_sim = None
+
         self.net_d_iters = train_opt.get('net_d_iters', 1)
         self.net_d_init_iters = train_opt.get('net_d_init_iters', 0)
 
