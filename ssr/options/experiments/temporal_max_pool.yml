@@ -30,7 +30,7 @@ datasets:
     use_shuffle: True  # shuffle must be false if using tile_weights
     rand_crop: True  # random crop and resize augmentation
 
-    num_worker_per_gpu: 16
+    num_worker_per_gpu: 8
     batch_size_per_gpu: 32
 
     n_s2_images: 8
