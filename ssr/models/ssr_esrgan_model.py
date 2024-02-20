@@ -132,6 +132,9 @@ class SSRESRGANModel(SRGANModel):
         lr_shp = self.lr.shape
         lr_resized = F.interpolate(self.lr, scale_factor=4)
 
+        # Add a random noise vector to the input.
+        print(lr_resized.shape, " HERE")
+
         # optimize net_g
         for p in self.net_d.parameters():
             p.requires_grad = False
