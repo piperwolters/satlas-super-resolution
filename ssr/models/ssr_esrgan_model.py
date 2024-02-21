@@ -182,8 +182,8 @@ class SSRESRGANModel(SRGANModel):
 
                 gt_edges = [cv2.Canny(cv2.cvtColor(gt_numpy[0].squeeze(), cv2.COLOR_RGB2GRAY), 100, 200) for i in range(gt_numpy.shape[0])]
                 sr_edges = [cv2.Canny(cv2.cvtColor(sr_numpy[0].squeeze(), cv2.COLOR_RGB2GRAY), 100, 200) for i in range(sr_numpy.shape[0])]
-                gt_edges = torch.stack([torch.tensor(img_np) for img_np in gt_edges]).float()
-                sr_edges = torch.stack([torch.tensor(img_np) for img_np in sr_edges]).float()
+                gt_edges = torch.stack([torch.tensor(img_np) for img_np in gt_edges]).float().to(self.device)
+                sr_edges = torch.stack([torch.tensor(img_np) for img_np in sr_edges]).float().to(self.device)
 
                 l_g_edges = self.cri_pix(sr_edges, gt_edges)
                 l_g_total += l_g_edges
