@@ -3,7 +3,9 @@ Adapted from: https://github.com/XPixelGroup/BasicSR/blob/master/basicsr/models/
 Authors: XPixelGroup
 """
 import os
+import cv2
 import torch
+import numpy as np
 import torch.nn.functional as F
 from collections import OrderedDict
 
@@ -97,10 +99,10 @@ class SSRESRGANModel(SRGANModel):
         else:
             self.clip_sim = None
 
-        if train_opt.get('segment_opt'):
-            self.segment_sim = build_loss(train_opt['segment_opt']).to(self.devicce)
+        if train_opt.get('edges_opt'):
+            self.edges_loss = build_loss(train_opt['edges_opt']).to(self.device)
         else:
-            self.segment_sim = None
+            self.edges_loss = None
 
         self.net_d_iters = train_opt.get('net_d_iters', 1)
         self.net_d_init_iters = train_opt.get('net_d_init_iters', 0)
@@ -172,6 +174,20 @@ class SSRESRGANModel(SRGANModel):
                 l_g_ssim = self.ssim_loss(self.output, percep_gt)
                 l_g_total += l_g_ssim
                 loss_dict['l_g_ssim'] = l_g_ssim
+
+            # Edge detection loss
+            if self.edges_loss:
+                gt_numpy = (self.gt.detach().cpu().numpy().transpose(0, 2, 3, 1)*255).astype(np.uint8)
+                sr_numpy = (self.output.detach().cpu().numpy().transpose(0, 2, 3, 1)*255).astype(np.uint8)
+
+                gt_edges = [cv2.Canny(cv2.cvtColor(gt_numpy[0].squeeze(), cv2.COLOR_RGB2GRAY), 100, 200) for i in range(gt_numpy.shape[0])]
+                sr_edges = [cv2.Canny(cv2.cvtColor(sr_numpy[0].squeeze(), cv2.COLOR_RGB2GRAY), 100, 200) for i in range(sr_numpy.shape[0])]
+                gt_edges = torch.stack([torch.tensor(img_np) for img_np in gt_edges]).float()
+                sr_edges = torch.stack([torch.tensor(img_np) for img_np in sr_edges]).float()
+
+                l_g_edges = self.cri_pix(sr_edges, gt_edges)
+                l_g_total += l_g_edges
+                loss_dict['l_g_edges'] = l_g_edges
 
             # Stack additional information onto the Real/Fake image given to the discriminator.
             # Specifically an older high-res image corresponding to the location of the ground truth,
