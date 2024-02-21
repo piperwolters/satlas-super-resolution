@@ -31,7 +31,7 @@ datasets:
     rand_crop: True  # random crop and resize augmentation
 
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 32
+    batch_size_per_gpu: 96
 
     n_s2_images: 8
 
