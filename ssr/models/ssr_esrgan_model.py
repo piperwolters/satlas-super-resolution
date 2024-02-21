@@ -136,14 +136,16 @@ class SSRESRGANModel(SRGANModel):
         lr_resized = F.interpolate(self.lr, scale_factor=self.scale)
 
         # Add a random noise vector to the input.
-        print(lr_resized.shape, " HERE")
+        noise_channels = 3
+        noise = torch.randn(lr_shp[0], noise_channels, lr_shp[2], lr_shp[3]).to(self.device)
+        gen_lr = torch.cat((self.lr, noise), dim=1)
 
         # optimize net_g
         for p in self.net_d.parameters():
             p.requires_grad = False
 
         self.optimizer_g.zero_grad()
-        self.output = self.net_g(self.lr)
+        self.output = self.net_g(gen_lr)
 
         l_g_total = 0
         loss_dict = OrderedDict()
@@ -242,7 +244,12 @@ class SSRESRGANModel(SRGANModel):
         if hasattr(self, 'net_g_ema'):
             self.net_g_ema.eval()
             with torch.no_grad():
-                self.output = self.net_g_ema(self.lr)
+                # Add a random noise vector to the input.
+                noise_channels = 3
+                lr_shp = self.lr.shape
+                noise = torch.randn(lr_shp[0], noise_channels, lr_shp[2], lr_shp[3]).to(self.device)
+                gen_lr = torch.cat((self.lr, noise), dim=1)
+                self.output = self.net_g_ema(gen_lr)
         else:
             self.net_g.eval()
             with torch.no_grad():
