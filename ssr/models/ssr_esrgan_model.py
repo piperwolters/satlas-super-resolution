@@ -3,13 +3,16 @@ Adapted from: https://github.com/XPixelGroup/BasicSR/blob/master/basicsr/models/
 Authors: XPixelGroup
 """
 import os
+import cv2
 import torch
+import numpy as np
 import torch.nn.functional as F
 from collections import OrderedDict
 
 from basicsr.archs import build_network
 from basicsr.models.srgan_model import SRGANModel
 from basicsr.utils import USMSharp, get_root_logger, imwrite, tensor2img
+from basicsr.utils.dist_util import master_only
 from basicsr.utils.registry import MODEL_REGISTRY
 
 from ssr.losses import build_loss
@@ -29,6 +32,8 @@ class SSRESRGANModel(SRGANModel):
     def __init__(self, opt):
         super(SSRESRGANModel, self).__init__(opt)
         self.usm_sharpener = USMSharp().cuda()
+
+        self.scale = opt['scale']
 
     def init_training_settings(self):
         train_opt = self.opt['train']
@@ -94,6 +99,11 @@ class SSRESRGANModel(SRGANModel):
         else:
             self.clip_sim = None
 
+        if train_opt.get('edges_opt'):
+            self.edges_loss = build_loss(train_opt['edges_opt']).to(self.device)
+        else:
+            self.edges_loss = None
+
         self.net_d_iters = train_opt.get('net_d_iters', 1)
         self.net_d_init_iters = train_opt.get('net_d_init_iters', 0)
 
@@ -130,7 +140,7 @@ class SSRESRGANModel(SRGANModel):
 
         # Upsample the low-res input images to that of the ground truth so they can be stacked.
         lr_shp = self.lr.shape
-        lr_resized = F.interpolate(self.lr, scale_factor=4)
+        lr_resized = F.interpolate(self.lr, scale_factor=self.scale)
 
         # optimize net_g
         for p in self.net_d.parameters():
@@ -164,6 +174,20 @@ class SSRESRGANModel(SRGANModel):
                 l_g_ssim = self.ssim_loss(self.output, percep_gt)
                 l_g_total += l_g_ssim
                 loss_dict['l_g_ssim'] = l_g_ssim
+
+            # Edge detection loss
+            if self.edges_loss:
+                gt_numpy = (self.gt.detach().cpu().numpy().transpose(0, 2, 3, 1)*255).astype(np.uint8)
+                sr_numpy = (self.output.detach().cpu().numpy().transpose(0, 2, 3, 1)*255).astype(np.uint8)
+
+                gt_edges = [cv2.Canny(cv2.cvtColor(gt_numpy[0].squeeze(), cv2.COLOR_RGB2GRAY), 100, 200) for i in range(gt_numpy.shape[0])]
+                sr_edges = [cv2.Canny(cv2.cvtColor(sr_numpy[0].squeeze(), cv2.COLOR_RGB2GRAY), 100, 200) for i in range(sr_numpy.shape[0])]
+                gt_edges = torch.stack([torch.tensor(img_np) for img_np in gt_edges]).float().to(self.device)
+                sr_edges = torch.stack([torch.tensor(img_np) for img_np in sr_edges]).float().to(self.device)
+
+                l_g_edges = self.cri_pix(sr_edges, gt_edges)
+                l_g_total += l_g_edges
+                loss_dict['l_g_edges'] = l_g_edges
 
             # Stack additional information onto the Real/Fake image given to the discriminator.
             # Specifically an older high-res image corresponding to the location of the ground truth,
@@ -351,3 +375,50 @@ class SSRESRGANModel(SRGANModel):
 
             self._log_validation_metric_values(current_iter, dataset_name, tb_logger)
 
+    @master_only
+    def save_network(self, net, net_label, current_iter, param_key='params'):
+        """Save networks.
+
+        Args:
+            net (nn.Module | list[nn.Module]): Network(s) to be saved.
+            net_label (str): Network label.
+            current_iter (int): Current iter number.
+            param_key (str | list[str]): The parameter key(s) to save network.
+                Default: 'params'.
+        """
+        if current_iter == -1:
+            current_iter = 'latest'
+        save_filename = f'{net_label}_{current_iter}.pth'
+        save_path = os.path.join(self.opt['path']['models'], save_filename)
+
+        net = net if isinstance(net, list) else [net]
+        param_key = param_key if isinstance(param_key, list) else [param_key]
+        assert len(net) == len(param_key), 'The lengths of net and param_key should be the same.'
+
+        save_dict = {}
+        for net_, param_key_ in zip(net, param_key):
+            net_ = self.get_bare_model(net_)
+            state_dict = net_.state_dict()
+            for key, param in state_dict.items():
+                if key.startswith('module.'):  # remove unnecessary 'module.'
+                    key = key[7:]
+                state_dict[key] = param.cpu()
+            save_dict[param_key_] = state_dict
+
+        # avoid occasional writing errors
+        retry = 3
+        while retry > 0:
+            try:
+                print("Saving model weights to...", save_path)
+                torch.save(save_dict, save_path)
+            except Exception as e:
+                logger = get_root_logger()
+                logger.warning(f'Save model error: {e}, remaining retry times: {retry - 1}')
+                time.sleep(1)
+            else:
+                break
+            finally:
+                retry -= 1
+        if retry == 0:
+            logger.warning(f'Still cannot save {save_path}. Just ignore it.')
+            # raise IOError(f'Cannot save {save_path}.')
