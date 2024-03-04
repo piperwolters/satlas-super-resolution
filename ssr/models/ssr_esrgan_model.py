@@ -253,7 +253,12 @@ class SSRESRGANModel(SRGANModel):
         else:
             self.net_g.eval()
             with torch.no_grad():
-                self.output = self.net_g(self.lr)
+                # Add a random noise vector to the input.
+                lr_shp = self.lr.shape
+                noise_channels = 3
+                noise = torch.randn(lr_shp[0], noise_channels, lr_shp[2], lr_shp[3]).to(self.device)
+                gen_lr = torch.cat((self.lr, noise), dim=1)
+                self.output = self.net_g(gen_lr)
             self.net_g.train()
 
     def get_current_visuals(self):
