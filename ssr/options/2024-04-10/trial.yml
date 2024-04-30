@@ -63,7 +63,7 @@ test_datasets:
      use_shuffle: False
 
      n_s2_images: 8
-     s2_bands: 60m
+     s2_bands: rgb
 
      io_backend:
        type: disk
