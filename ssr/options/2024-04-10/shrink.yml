@@ -25,7 +25,7 @@ datasets:
     use_shuffle: True  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 64
-    batch_size_per_gpu: 128
+    batch_size_per_gpu: 100
 
     n_s2_images: 8
 
