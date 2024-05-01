@@ -14,8 +14,6 @@ from basicsr.utils.registry import DATASET_REGISTRY
 
 from ssr.utils.data_utils import *
 
-random.seed(123)
-
 
 @DATASET_REGISTRY.register()
 class S2NAIPv2Dataset(data.Dataset):
@@ -33,6 +31,9 @@ class S2NAIPv2Dataset(data.Dataset):
 
     def __init__(self, opt):
         super(S2NAIPv2Dataset, self).__init__()
+
+        random.seed(123)
+
         self.opt = opt
 
         self.split = opt['phase']
@@ -54,7 +55,7 @@ class S2NAIPv2Dataset(data.Dataset):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
         # BEAKER-specific hack
-        if '/results' in opt['experiments_root']:
+        if 'experiments_root' in opt and '/results' in opt['experiments_root']:
             self.s2_path = self.s2_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
             self.naip_path = self.naip_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
 
@@ -73,10 +74,6 @@ class S2NAIPv2Dataset(data.Dataset):
                 s2_paths.append(s2_tile.replace('_8.tif', '_16.tif'))
                 if self.s2_bands == '60m':
                     s2_paths.append(s2_tile.replace('_8.tif', '_32.tif'))
-
-            for p in s2_paths:
-                if not os.path.exists(p):
-                    continue
 
             naip_path = None
             if self.naip_path is not None:
