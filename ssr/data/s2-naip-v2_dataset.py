@@ -51,7 +51,7 @@ class S2NAIPv2Dataset(data.Dataset):
         # Paths to Sentinel-2 and NAIP imagery. Assert that at least the LR path is provided.
         self.s2_path = opt['sentinel2_path']
         self.naip_path = opt['naip_path'] if 'naip_path' in opt else None
-        if 'experiments_root' in opt and '/results' in opt['experiments_root']:  # BEAKER-specific hack
+        if True:  # BEAKER HACK
             self.s2_path = self.s2_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
             self.naip_path = self.naip_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
 
