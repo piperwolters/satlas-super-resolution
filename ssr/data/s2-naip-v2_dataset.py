@@ -48,14 +48,14 @@ class S2NAIPv2Dataset(data.Dataset):
         # High-res images at older timestamps than the training set. For S2NAIP this is 2016-2018 NAIP images.
         self.old_naip_chips = get_old_naip(opt['old_naip_path']) if 'old_naip_path' in opt else None
 
-        # BEAKER-specific hack
-        if 'experiments_root' in opt and '/results' in opt['experiments_root']:
-            self.s2_path = self.s2_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
-            self.naip_path = self.naip_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
-
         # Paths to Sentinel-2 and NAIP imagery. Assert that at least the LR path is provided.
         self.s2_path = opt['sentinel2_path']
         self.naip_path = opt['naip_path'] if 'naip_path' in opt else None
+        if 'experiments_root' in opt and '/results' in opt['experiments_root']:  # BEAKER-specific hack
+            self.s2_path = self.s2_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
+            self.naip_path = self.naip_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
+
+        print("Trying to retrieve data from ...", self.s2_path, " and ", self.naip_path)
         if not os.path.exists(self.s2_path):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
