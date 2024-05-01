@@ -1,5 +1,5 @@
 # General Settings
-name: s2naipv2_trial
+name: s2naipv2_shrink
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -195,7 +195,7 @@ logger:
   save_checkpoint_freq: !!float 5e3 
   use_tb_logger: true
   wandb:
-    project: multisat
+    project: satlas-super-res
     resume_id: ~
 
 # Dist Training Settings
