@@ -53,6 +53,11 @@ class S2NAIPv2Dataset(data.Dataset):
         if not os.path.exists(self.s2_path):
             raise Exception("Please make sure the paths to the data directories are correct.")
 
+        # BEAKER-specific hack
+        if '/results' in opt['experiments_root']:
+            self.s2_path = self.s2_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
+            self.naip_path = self.naip_path.replace('/data/piperw/data/', '/net/nfs.cirrascale/prior/piperw/')
+
         s2_tiles = glob.glob(self.s2_path + '*_8.tif')  # list of all tif files containing 10m bands
 
         # Reduce the training set down to a specified number of samples. If not specified, whole set is used.
