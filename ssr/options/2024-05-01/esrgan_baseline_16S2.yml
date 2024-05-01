@@ -1,5 +1,5 @@
 # General Settings
-name: esrgan_baseline_2S2
+name: esrgan_baseline_16S2
 model_type: SSRESRGANModel
 scale: 4
 num_gpu: auto
@@ -27,9 +27,9 @@ datasets:
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 32
-    batch_size_per_gpu: 64
+    batch_size_per_gpu: 128
 
-    n_s2_images: 2
+    n_s2_images: 16
 
     s2_bands: [tci]
 
@@ -45,7 +45,7 @@ datasets:
 
      use_shuffle: False
 
-     n_s2_images: 2
+     n_s2_images: 16
 
      s2_bands: [tci]
 
@@ -64,7 +64,7 @@ test_datasets:
 
      use_shuffle: False
 
-     n_s2_images: 2
+     n_s2_images: 16
 
      io_backend:
        type: disk
@@ -72,7 +72,7 @@ test_datasets:
 # Network Structures
 network_g:
   type: SSR_RRDBNet
-  num_in_ch: 6  # number of Sentinel2 images * 3 channels (RGB)
+  num_in_ch: 48  # number of Sentinel2 images * 3 channels (RGB)
   num_out_ch: 3
   num_feat: 64
   num_block: 23
@@ -80,7 +80,7 @@ network_g:
 
 network_d:
   type: SSR_UNetDiscriminatorSN
-  num_in_ch: 9  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
+  num_in_ch: 51  # RGB of Real/Fake image + [optional] old high-res image + [optional] low-res images
   num_feat: 64
   skip_connection: True
 
@@ -153,8 +153,8 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 5e5
-   save_img: True
+   val_freq: !!float 5e6
+   save_img: False
 
    metrics:
      psnr:

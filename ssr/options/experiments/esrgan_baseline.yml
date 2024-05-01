@@ -27,7 +27,7 @@ datasets:
     use_shuffle: False  # shuffle must be false if using tile_weights
 
     num_worker_per_gpu: 64
-    batch_size_per_gpu: 100
+    batch_size_per_gpu: 64
 
     n_s2_images: 8
 
@@ -95,7 +95,7 @@ path:
   strict_load_d: true
   resume_state: ~
 
-  experiments_root: /results/experiments/
+  #experiments_root: /results/experiments/
 
 # Training Settings
 train:
@@ -153,8 +153,8 @@ train:
 
 # Validation Settings
 val:
-   val_freq: !!float 5e6
-   save_img: False
+   val_freq: !!float 5e5
+   save_img: True
 
    metrics:
      psnr:
