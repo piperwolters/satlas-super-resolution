@@ -85,7 +85,8 @@ class S2NAIPv2Dataset(data.Dataset):
             self.datapoints.append([s2_paths, naip_path, old_naip_path])
 
         # Split train vs val
-        rand_dps = random.sample(self.datapoints, 100)
+        #rand_dps = random.sample(self.datapoints, 100)
+        rand_dps = self.datapoints
         if train:
             self.datapoints = [item for item in self.datapoints if item not in rand_dps]
         else:

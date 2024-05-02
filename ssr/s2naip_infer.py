@@ -45,13 +45,15 @@ if __name__ == "__main__":
     for i,s2_tile in enumerate(s2_tiles):
         print("S2 TILE:", s2_tile)
 
-        s2_rgb = load_and_extract_bands(s2_tile, desired_bands=[2,1,0], n_bands_per_image=4)
-        s2_tensor = torch.reshape(s2_rgb, (-1, 3, 512, 512))   # shape [n_imgs*3, 64, 64] -> [n_imgs, 3, 64, 64]
-        s2_tensor = s2_tensor[n_lr_images:n_lr_images+8, :, :, :]
-        s2_tensor = torch.reshape(s2_tensor, (-1, 512, 512)).unsqueeze(0).to(device)
+        s2_tile = '/data/piperw/data/s2naip/sentinel2/32614_1175_-7103_8.tif'
 
-        for r in range(0, 512, 64):
-            for c in range(0, 512, 64):
+        s2_rgb = load_and_extract_bands(s2_tile, desired_bands=[2,1,0], n_bands_per_image=4)
+        s2_tensor = torch.reshape(s2_rgb, (-1, 3, 64, 64))   # shape [n_imgs*3, 64, 64] -> [n_imgs, 3, 64, 64]
+        s2_tensor = s2_tensor[n_lr_images:n_lr_images+8, :, :, :]
+        s2_tensor = torch.reshape(s2_tensor, (-1, 64, 64)).unsqueeze(0).to(device)
+
+        for r in range(0, 64, 64):
+            for c in range(0, 64, 64):
                 save_dir = os.path.join(save_path, str(i), str(r) + '_' + str(c))
                 os.makedirs(save_dir, exist_ok=True)
 
@@ -59,7 +61,7 @@ if __name__ == "__main__":
                 s2_img = (s2_img * 255).astype(np.uint8)
 
                 # Feed the low-res images through the super-res model.
-                input_tensor = s2_tensor[:, :, r:r+64, c:c+64]
+                input_tensor = s2_tensor[:, :, r:r+64, c:c+64].float()
                 output = model(input_tensor)
 
                 # Save the low-res input image in the same dir as the super-res image so
@@ -67,7 +69,7 @@ if __name__ == "__main__":
                 skimage.io.imsave(save_dir + '/lr.png', s2_img)
 
                 # Convert the model output back to a numpy array and adjust shape and range.
-                output = torch.clamp(output, 0, 1)
+                #output = torch.clamp(output, 0, 1)
                 output = output.squeeze().cpu().detach().numpy()
                 output = np.transpose(output, (1, 2, 0))  # transpose to [h, w, 3] to save as image
                 output = (output * 255).astype(np.uint8)
