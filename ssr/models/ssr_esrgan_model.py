@@ -281,6 +281,8 @@ class SSRESRGANModel(SRGANModel):
 
         use_pbar = self.opt['val'].get('pbar', False)
 
+        with_metrics = False
+
         if with_metrics:
             if not hasattr(self, 'metric_results'):  # only execute in the first run
                 self.metric_results = {metric: 0 for metric in metrics2run.keys()}
@@ -304,7 +306,7 @@ class SSRESRGANModel(SRGANModel):
             visuals = self.get_current_visuals()
             sr_img = tensor2img([visuals['result']])
             metric_data['img'] = sr_img
-            if 'gt' in visuals:
+            if 'gt' in visuals and False:
                 gt_img = tensor2img([visuals['gt']])
                 metric_data['img2'] = gt_img
 

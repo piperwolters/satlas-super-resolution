@@ -83,29 +83,17 @@ class S2NAIPv2Dataset(data.Dataset):
                     self.datapoints.append([s2_paths, naip_path, old_naip_path])
                     self.indexes.append([r, c])  # when we want to run inference on larger image, have to chunk
 
-            break
-
         # Split train vs val
         #rand_dps = random.sample(self.datapoints, 100)
-        rand_dps = self.datapoints
-        if train:
-            self.datapoints = [item for item in self.datapoints if item not in rand_dps]
-        else:
-            self.datapoints = rand_dps
+        #if train:
+        #    self.datapoints = [item for item in self.datapoints if item not in rand_dps]
+        #else:
+        #    self.datapoints = rand_dps
 
         self.data_len = len(self.datapoints)
         print("Number of datapoints for split ", self.split, ": ", self.data_len)
 
     def __getitem__(self, index):
-
-        # A while loop and try/excepts to catch a few images that we want to ignore during 
-        # training but do not necessarily want to remove from the dataset, such as the
-        # ground truth NAIP image being partially invalid (all black). 
-        counter = 0
-        #while True:
-        index += counter  # increment the index based on what errors have been caught
-        if index >= self.data_len:
-            index = 0
 
         datapoint = self.datapoints[index]
         s2_paths, naip_path, old_naip_path = datapoint
@@ -117,8 +105,8 @@ class S2NAIPv2Dataset(data.Dataset):
         # 4 bands:  B02, B03, B04, and B08 formatted like [B02B03B04B08B02B03B04B08...]
         if self.s2_bands == 'rgb':
             s2_rgb = load_and_extract_bands(s2_paths[0], desired_bands=[2,1,0], n_bands_per_image=4)
-            #s2_rgb = s2_rgb.repeat(8, 1, 1)
-            #s2_rgb = s2_rgb[:, r:r+64, c:c+64]
+            s2_rgb = s2_rgb.repeat(8, 1, 1)
+            s2_rgb = s2_rgb[:, r:r+64, c:c+64]
             s2_tensor = torch.reshape(s2_rgb, (-1, 3, 64, 64))   # shape [n_imgs*3, 64, 64] -> [n_imgs, 3, 64, 64]
         elif self.s2_bands == '10m':
             s2_10m = load_and_extract_bands(s2_paths[1], desired_bands=[2,1,0,3], n_bands_per_image=4)
@@ -139,20 +127,12 @@ class S2NAIPv2Dataset(data.Dataset):
             # Load the NAIP chip in as a tensor of shape [channels, height, width].
             naip_chip = torchvision.io.read_image(naip_path)  # shape [4, 512, 512]
 
-            # Check for black pixels (almost certainly invalid) and skip if found.
-            if has_black_pixels(naip_chip):
-                counter += 1
-                #continue
-
             # Downsample naip to be just x4 the resolution of sentinel2 (could change later?)
             downsampled = torch.nn.functional.interpolate(naip_chip.unsqueeze(0), size=(256,256), mode='bilinear')
             rgb = downsampled.squeeze(0)[:3]
             img_HR = rgb
-
-        # Skip the cases when there are not as many Sentinel-2 images as requested.
-        if s2_tensor.shape[0] < self.n_s2_images:
-            counter += 1
-            #continue
+        else:
+            img_HR = torch.zeros((s2_tensor.shape[0], 256, 256))
 
         # Iterate through the 64x64 tci chunks at each timestep, separating them into "good" (valid)
         # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
@@ -177,17 +157,6 @@ class S2NAIPv2Dataset(data.Dataset):
         # Reshape to stack n_imgsxbands into 1 dimension
         img_S2 = torch.reshape(img_S2, (-1, 64, 64))
 
-        # If the rand_crop augmentation is specified (during training only), randomly pick size in [24,32]
-        # and randomly crop the LR and HR images to their respective sizes, then resize back to 32x32 / 128x128.
-        if self.rand_crop:
-            rand_lr_size = random.randint(24, 32)
-            rand_hr_size = int(rand_lr_size * 4)
-            img_S2_cropped = img_S2[:, :, :rand_lr_size, :rand_lr_size]
-            img_HR_cropped = img_HR[:, :rand_hr_size, :rand_hr_size]
-            img_S2 = F.interpolate(img_S2_cropped, (32,32))
-            img_HR = F.interpolate(img_HR_cropped.unsqueeze(0), (128,128)).squeeze(0)  # need to unsqueeze tensor for interpolation to work, then squeeze
-
-        print("range of img s2:", torch.min(img_S2), torch.max(img_S2))
         return {'hr': img_HR, 'lr': img_S2, 'Index': index, 'Phase': self.split}
 
     def __len__(self):
