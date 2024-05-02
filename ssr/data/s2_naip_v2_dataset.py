@@ -105,7 +105,7 @@ class S2NAIPv2Dataset(data.Dataset):
         # 4 bands:  B02, B03, B04, and B08 formatted like [B02B03B04B08B02B03B04B08...]
         if self.s2_bands == 'rgb':
             s2_rgb = load_and_extract_bands(s2_paths[0], desired_bands=[2,1,0], n_bands_per_image=4)
-            s2_rgb = s2_rgb.repeat(8, 1, 1)
+            #s2_rgb = s2_rgb.repeat(8, 1, 1)
             s2_rgb = s2_rgb[:, r:r+64, c:c+64]
             s2_tensor = torch.reshape(s2_rgb, (-1, 3, 64, 64))   # shape [n_imgs*3, 64, 64] -> [n_imgs, 3, 64, 64]
         elif self.s2_bands == '10m':

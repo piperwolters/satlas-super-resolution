@@ -4,6 +4,7 @@ Authors: XPixelGroup
 """
 import os
 import torch
+import numpy as np
 import torch.nn.functional as F
 from collections import OrderedDict
 
@@ -304,7 +305,18 @@ class SSRESRGANModel(SRGANModel):
             self.test()
 
             visuals = self.get_current_visuals()
+
             sr_img = tensor2img([visuals['result']])
+
+            # Funky stuff to get lr ready to be saved as rgb
+            lr = torch.permute(visuals['lr'][0, :3, :, :].squeeze(0), (1, 2, 0))  # visuals['lr'] is [batch, n_imgsxn_bands, h, w]
+            print("lr before:", torch.min(lr), torch.max(lr), lr.shape)
+            lr = (lr - torch.min(lr)) / (torch.max(lr) - torch.min(lr))
+            lr = lr.cpu().detach().numpy()
+            lr_img = (lr * 255).astype(np.uint8)
+            print("range after:", np.min(lr_img), np.max(lr_img))
+            #lr_img = tensor2img([lr])
+
             metric_data['img'] = sr_img
             if 'gt' in visuals and False:
                 gt_img = tensor2img([visuals['gt']])
@@ -329,10 +341,16 @@ class SSRESRGANModel(SRGANModel):
                 if self.opt['is_train']:
                     save_img_path = os.path.join(self.opt['path']['visualization'], img_name,
                                              f'{img_name}_{current_iter}.png')
+                    save_lr_path = os.path.join(self.opt['path']['visualization'], img_name,
+                                             f'{img_name}_lr_{current_iter}.png')
                 else:
                     save_img_path = os.path.join(self.opt['path']['visualization'], dataset_name,
                                                  f'{img_name}_{self.opt["name"]}.png')
+                    save_lr_path = os.path.join(self.opt['path']['visualization'], dataset_name,
+                                             f'{img_name}_lr_{current_iter}.png')
+
                 imwrite(sr_img, save_img_path)
+                imwrite(lr_img, save_lr_path)
 
             if with_metrics:
                 # calculate metrics
