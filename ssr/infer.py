@@ -7,7 +7,7 @@ import skimage.io
 import numpy as np
 from torch.utils.data import DataLoader
 
-from ssr.datasets import S2NAIPv2Dataset
+from ssr.data.s2_naip_v2_dataset import S2NAIPv2Dataset
 from ssr.utils.infer_utils import format_s2naip_data
 from ssr.utils.options import yaml_load
 from ssr.utils.model_utils import build_network
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     opt = yaml_load(args.opt)
 
     # Create the dataset for inference.
-    dataset = S2NAIPv2Dataset(opt['TestData'])
+    dataset = S2NAIPv2Dataset(opt['test_datasets']['test'])
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
 
     save_path = opt['save_path']  # directory where model outputs will be saved
@@ -44,23 +44,30 @@ if __name__ == "__main__":
 
     for i, data in enumerate(dataloader):
 
-        img_S2 = data['img_S2']
+        img_S2 = data.to(device)
 
         save_dir = os.path.join(save_path, str(i))
         os.makedirs(save_dir, exist_ok=True)
 
         # Feed the low-res images through the super-res model.
         output = model(img_S2)
-        print("img s2 :", img_S2.shape)
-        print("output:", output.shape)
+        print("img s2 :", img_S2.shape, torch.min(img_S2), torch.max(img_S2))
+        print("output:", output.shape, torch.min(output), torch.max(output))
 
         # Save the low-res input image in the same dir as the super-res image so
         # it is easy for the user to compare.
+        s2_image = img_S2[:, :3, :, :].squeeze(0).cpu()
+        s2_image_norm = (s2_image - s2_image.min()) / (s2_image.max() - s2_image.min())
+        s2_image = s2_image_norm.detach().numpy()
+        s2_image = (s2_image * 255).astype(np.uint8)
+        print(s2_image.shape)
         skimage.io.imsave(save_dir + '/lr.png', s2_image)
 
         # Convert the model output back to a numpy array and adjust shape and range.
-        output = torch.clamp(output, 0, 1)
-        output = output.squeeze().cpu().detach().numpy()
+        #output = torch.clamp(output, 0, 1)
+        output = output.squeeze().cpu()
+        output_norm = (output - output.min()) / (output.max() - output.min())
+        output = output.detach().numpy()
         output = np.transpose(output, (1, 2, 0))  # transpose to [h, w, 3] to save as image
         output = (output * 255).astype(np.uint8)
 

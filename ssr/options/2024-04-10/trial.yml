@@ -14,6 +14,7 @@ gan_gt_usm: False
 feed_disc_lr: True
 
 save_path: tmp_global_outputs/
+n_lr_images: 8
 
 # Dataset and Dataloader Settings
 datasets:
