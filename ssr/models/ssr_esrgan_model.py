@@ -310,12 +310,10 @@ class SSRESRGANModel(SRGANModel):
 
             # Funky stuff to get lr ready to be saved as rgb
             lr = torch.permute(visuals['lr'][0, :3, :, :].squeeze(0), (1, 2, 0))  # visuals['lr'] is [batch, n_imgsxn_bands, h, w]
-            print("lr before:", torch.min(lr), torch.max(lr), lr.shape)
             lr = (lr - torch.min(lr)) / (torch.max(lr) - torch.min(lr))
+            lr = lr[:, :, [2, 1, 0]]
             lr = lr.cpu().detach().numpy()
             lr_img = (lr * 255).astype(np.uint8)
-            print("range after:", np.min(lr_img), np.max(lr_img))
-            #lr_img = tensor2img([lr])
 
             metric_data['img'] = sr_img
             if 'gt' in visuals and False:
